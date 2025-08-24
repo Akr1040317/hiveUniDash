@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "@/api/entities";
 
 const navigationItems = [
   {
@@ -68,36 +67,28 @@ const navigationItems = [
   }
 ];
 
-export default function Layout({ children, currentPageName }) {
+export default function Layout({ children, currentPageName, currentRegion, user, onSignOut }) {
   const location = useLocation();
-  const [currentRegion, setCurrentRegion] = useState("us");
-  const [user, setUser] = useState(null);
+  const [localRegion, setLocalRegion] = useState(currentRegion || "us");
 
   useEffect(() => {
     // Apply dark theme globally
     document.documentElement.classList.add('dark');
-    loadUser();
-    const savedRegion = localStorage.getItem('hive_region') || 'us';
-    setCurrentRegion(savedRegion);
-  }, []);
-
-  const loadUser = async () => {
-    try {
-      const userData = await User.me();
-      setUser(userData);
-    } catch (error) {
-      console.error("User not loaded:", error);
+    
+    // Update local region when prop changes
+    if (currentRegion) {
+      setLocalRegion(currentRegion);
     }
-  };
+  }, [currentRegion]);
 
   const handleRegionChange = (region) => {
-    setCurrentRegion(region);
+    setLocalRegion(region);
     localStorage.setItem('hive_region', region);
     window.location.reload();
   };
 
-  const handleLogout = async () => {
-    await User.logout();
+  const handleLogout = () => {
+    onSignOut();
   };
 
   const regionInfo = {
@@ -132,10 +123,10 @@ export default function Layout({ children, currentPageName }) {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-full justify-between h-auto py-2 bg-gray-800 border-gray-700 hover:bg-gray-700">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${regionInfo[currentRegion].color}`} />
+                    <div className={`w-2 h-2 rounded-full ${regionInfo[localRegion].color}`} />
                     <div className="text-left">
-                      <div className="font-semibold text-white text-sm">{regionInfo[currentRegion].name}</div>
-                      <div className="text-xs text-gray-400">{regionInfo[currentRegion].subtitle}</div>
+                      <div className="font-semibold text-white text-sm">{regionInfo[localRegion].name}</div>
+                      <div className="text-xs text-gray-400">{regionInfo[localRegion].subtitle}</div>
                     </div>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
