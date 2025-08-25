@@ -49,6 +49,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import calComService from '@/lib/calcomService';
 
+// Import entities
+import { Feature, Bug, Event, Quiz } from '@/api/entities';
+
 const eventColors = {
   feature: 'bg-purple-500',
   bug: 'bg-red-500',
