@@ -98,8 +98,8 @@ export default function Layout({ children, currentPageName, currentRegion, user,
       color: "bg-blue-400"
     },
     dubai: {
-      name: "Dubai",
-      subtitle: "Dubai Bee",
+      name: "UAE Prepcenter",
+      subtitle: "UAE Bee",
       color: "bg-amber-400"
     }
   };

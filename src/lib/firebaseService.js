@@ -161,22 +161,39 @@ export const deleteContent = async (region, contentId) => {
 
 // Bug-specific functions
 export const getBugs = async (region, filters = {}) => {
+  // For Dubai region, use the feedbackAndBugs collection
+  if (region === 'dubai') {
+    return await getData(region, 'feedbackAndBugs', { ...filters, type: 'bug_report' }, { field: 'timestamp', direction: 'desc' });
+  }
+  // For US region, use the bugs collection
   return await getData(region, 'bugs', filters, { field: 'created_at', direction: 'desc' });
 };
 
 export const getBugById = async (region, bugId) => {
+  if (region === 'dubai') {
+    return await getDocument(region, 'feedbackAndBugs', bugId);
+  }
   return await getDocument(region, 'bugs', bugId);
 };
 
 export const createBug = async (region, bugData) => {
+  if (region === 'dubai') {
+    return await addDocument(region, 'feedbackAndBugs', bugData);
+  }
   return await addDocument(region, 'bugs', bugData);
 };
 
 export const updateBug = async (region, bugId, bugData) => {
+  if (region === 'dubai') {
+    return await updateDocument(region, 'feedbackAndBugs', bugId, bugData);
+  }
   return await updateDocument(region, 'bugs', bugId, bugData);
 };
 
 export const deleteBug = async (region, bugId) => {
+  if (region === 'dubai') {
+    return await deleteDocument(region, 'feedbackAndBugs', bugId);
+  }
   return await deleteDocument(region, 'bugs', bugId);
 };
 
