@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Event, Feature, Bug, Quiz } from '@/api/entities';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, parseISO } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, MapPin, Users, Tag, ExternalLink } from 'lucide-react';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Plus, 
+  Calendar as CalendarIcon, 
+  Clock, 
+  MapPin, 
+  Users, 
+  Tag, 
+  ExternalLink, 
+  X, 
+  Link as LinkIcon, 
+  Video, 
+  Phone, 
+  MapPin as LocationIcon, 
+  Calendar, 
+  Clock as ClockIcon, 
+  User 
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +45,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import calComService from '@/lib/calcomService';
 
 const eventColors = {
@@ -61,6 +80,10 @@ export default function CalendarPage() {
     attendees: '',
     priority: 'medium'
   });
+
+  // Event detail modal state
+  const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
     loadAllEvents();
@@ -220,6 +243,16 @@ export default function CalendarPage() {
     }
   };
 
+  const handleEventClick = (event) => {
+    setSelectedEvent(event);
+    setIsEventDetailOpen(true);
+  };
+
+  const closeEventDetail = () => {
+    setIsEventDetailOpen(false);
+    setSelectedEvent(null);
+  };
+
   const getEventDisplayInfo = (event) => {
     const color = eventColors[event.type] || eventColors.other;
     const icon = event.type === 'feature' ? Tag : 
@@ -282,7 +315,11 @@ export default function CalendarPage() {
                 {dayEvents.map(event => {
                   const { color, icon: Icon } = getEventDisplayInfo(event);
                   return (
-                    <div key={event.id} className={`p-1 rounded ${color} text-white truncate flex items-center gap-1`}>
+                    <div 
+                      key={event.id} 
+                      className={`p-1 rounded ${color} text-white truncate flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity`}
+                      onClick={() => handleEventClick(event)}
+                    >
                       <Icon className="w-3 h-3 flex-shrink-0" />
                       <span className="truncate">{event.title}</span>
                     </div>
@@ -549,6 +586,196 @@ export default function CalendarPage() {
           {renderCells()}
         </CardContent>
       </Card>
+
+      {/* Event Detail Modal */}
+      <Dialog open={isEventDetailOpen} onOpenChange={setIsEventDetailOpen}>
+        <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-xl font-bold">
+                {selectedEvent?.title}
+              </DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={closeEventDetail}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+
+          {selectedEvent && (
+            <div className="space-y-6">
+              {/* Event Type Badge */}
+              <div className="flex items-center gap-2">
+                <Badge 
+                  variant="secondary" 
+                  className={`${
+                    selectedEvent.type === 'calcom' ? 'bg-teal-500/20 text-teal-300 border-teal-500/30' :
+                    selectedEvent.type === 'feature' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
+                    selectedEvent.type === 'bug' ? 'bg-red-500/20 text-red-300 border-red-500/30' :
+                    'bg-gray-500/20 text-gray-300 border-gray-500/30'
+                  }`}
+                >
+                  {selectedEvent.type.toUpperCase()}
+                </Badge>
+                {selectedEvent.type === 'calcom' && (
+                  <Badge variant="outline" className="border-teal-500/50 text-teal-300">
+                    Cal.com Event
+                  </Badge>
+                )}
+              </div>
+
+              {/* Basic Event Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <Calendar className="w-4 h-4" />
+                    <span>Date: {selectedEvent.startDate}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <ClockIcon className="w-4 h-4" />
+                    <span>Time: {selectedEvent.startTime} - {selectedEvent.endTime}</span>
+                  </div>
+                  {selectedEvent.location && (
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <LocationIcon className="w-4 h-4" />
+                      <span>Location: {selectedEvent.location}</span>
+                    </div>
+                  )}
+                  {selectedEvent.attendees && (
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <Users className="w-4 h-4" />
+                      <span>Attendees: {selectedEvent.attendees}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  {selectedEvent.priority && (
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <Tag className="w-4 h-4" />
+                      <span>Priority: {selectedEvent.priority}</span>
+                    </div>
+                  )}
+                  {selectedEvent.description && (
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <span className="w-4 h-4">📝</span>
+                      <span>Description: {selectedEvent.description}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Cal.com Specific Information */}
+              {selectedEvent.type === 'calcom' && selectedEvent.originalData && (
+                <>
+                  <Separator className="bg-gray-600" />
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-teal-300">Cal.com Details</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <User className="w-4 h-4" />
+                          <span>Organizer: {selectedEvent.organizer}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <Badge 
+                            variant="outline" 
+                            className={
+                              selectedEvent.isConfirmed ? 'border-green-500/50 text-green-300' :
+                              selectedEvent.isPending ? 'border-yellow-500/50 text-yellow-300' :
+                              'border-red-500/50 text-red-300'
+                            }
+                          >
+                            Status: {selectedEvent.status}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <span className="w-4 h-4">🎯</span>
+                          <span>Event Type: {selectedEvent.eventType}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {selectedEvent.originalData.metadata?.videoCallUrl && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-gray-300">
+                              <Video className="w-4 h-4" />
+                              <span>Zoom Meeting</span>
+                            </div>
+                            <a
+                              href={selectedEvent.originalData.metadata.videoCallUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 underline break-all"
+                            >
+                              <LinkIcon className="w-3 h-3" />
+                              Join Meeting
+                            </a>
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <LinkIcon className="w-4 h-4" />
+                          <a
+                            href={selectedEvent.bookingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-teal-400 hover:text-teal-300 underline"
+                          >
+                            View on Cal.com
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional Cal.com Fields */}
+                    {selectedEvent.originalData.responses && (
+                      <div className="space-y-3">
+                        <h4 className="text-md font-medium text-gray-300">Booking Details</h4>
+                        <div className="bg-gray-700/50 p-3 rounded-lg space-y-2">
+                          {selectedEvent.originalData.responses.notes && (
+                            <div className="text-gray-300">
+                              <span className="font-medium">Notes: </span>
+                              {selectedEvent.originalData.responses.notes}
+                            </div>
+                          )}
+                          {selectedEvent.originalData.responses.guests && selectedEvent.originalData.responses.guests.length > 0 && (
+                            <div className="text-gray-300">
+                              <span className="font-medium">Additional Guests: </span>
+                              {selectedEvent.originalData.responses.guests.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-4">
+                {selectedEvent.type === 'calcom' && selectedEvent.originalData.metadata?.videoCallUrl && (
+                  <Button 
+                    onClick={() => window.open(selectedEvent.originalData.metadata.videoCallUrl, '_blank')}
+                    className="bg-teal-600 hover:bg-teal-700"
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    Join Zoom Meeting
+                  </Button>
+                )}
+                <Button variant="outline" onClick={closeEventDetail}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
