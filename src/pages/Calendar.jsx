@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, MapPin, Users, Tag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, MapPin, Users, Tag, ExternalLink } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import calComService from '@/lib/calcomService';
 
 const eventColors = {
   feature: 'bg-purple-500',
@@ -37,6 +38,7 @@ const eventColors = {
   meeting: 'bg-green-500',
   content: 'bg-indigo-500',
   quiz: 'bg-pink-500',
+  calcom: 'bg-teal-500', // New color for Cal.com events
   other: 'bg-gray-500',
 };
 
@@ -45,6 +47,8 @@ export default function CalendarPage() {
   const [allEvents, setAllEvents] = useState([]);
   const [currentRegion] = useState(localStorage.getItem('hive_region') || 'us');
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [showCalComEvents, setShowCalComEvents] = useState(true);
+  const [isLoadingCalCom, setIsLoadingCalCom] = useState(false);
   const [eventForm, setEventForm] = useState({
     title: '',
     description: '',
@@ -60,7 +64,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     loadAllEvents();
-  }, [currentRegion]);
+  }, [currentRegion, showCalComEvents]);
 
   const loadAllEvents = async () => {
     try {
@@ -142,7 +146,26 @@ export default function CalendarPage() {
           originalData: e
         }));
 
-      const combined = [...featureEvents, ...bugEvents, ...quizEvents, ...eventEvents];
+      // Load Cal.com bookings if enabled
+      let calComEvents = [];
+      if (showCalComEvents) {
+        setIsLoadingCalCom(true);
+        try {
+          const startOfMonthDate = startOfMonth(currentMonth);
+          const endOfMonthDate = endOfMonth(currentMonth);
+          
+          calComEvents = await calComService.getBookingsForDateRange(
+            format(startOfMonthDate, 'yyyy-MM-dd'),
+            format(endOfMonthDate, 'yyyy-MM-dd')
+          );
+        } catch (error) {
+          console.error('Error loading Cal.com events:', error);
+        } finally {
+          setIsLoadingCalCom(false);
+        }
+      }
+
+      const combined = [...featureEvents, ...bugEvents, ...quizEvents, ...eventEvents, ...calComEvents];
       setAllEvents(combined);
     } catch (error) {
       console.error('Error loading events:', error);
@@ -203,6 +226,7 @@ export default function CalendarPage() {
                  event.type === 'bug' ? Tag : 
                  event.type === 'webinar' ? Users : 
                  event.type === 'deadline' ? Clock : 
+                 event.type === 'calcom' ? ExternalLink : 
                  CalendarIcon;
     
     return { color, icon };
@@ -475,7 +499,26 @@ export default function CalendarPage() {
       {/* Event Legend */}
       <Card className="bg-gray-800/50 border-gray-700/50">
         <CardHeader>
-          <CardTitle className="text-white text-lg">Event Types</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white text-lg">Event Types</CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="showCalCom"
+                  checked={showCalComEvents}
+                  onChange={(e) => setShowCalComEvents(e.target.checked)}
+                  className="w-4 h-4 text-teal-600 bg-gray-700 border-gray-600 rounded focus:ring-teal-500 focus:ring-2"
+                />
+                <Label htmlFor="showCalCom" className="text-sm text-gray-300">
+                  Show Cal.com Events
+                </Label>
+              </div>
+              {isLoadingCalCom && (
+                <div className="text-sm text-teal-400">Loading Cal.com...</div>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
@@ -483,6 +526,9 @@ export default function CalendarPage() {
               <div key={type} className="flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${color}`}></div>
                 <span className="text-sm text-gray-300 capitalize">{type}</span>
+                {type === 'calcom' && (
+                  <span className="text-xs text-teal-400">(External)</span>
+                )}
               </div>
             ))}
           </div>
