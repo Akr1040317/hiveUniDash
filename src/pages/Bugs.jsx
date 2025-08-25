@@ -3,7 +3,7 @@ import { Bug } from "@/api/entities";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Flag, User } from 'lucide-react';
+import { Plus, Flag, User, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -47,11 +47,23 @@ const severityLevels = {
 };
 
 const assignees = [
-  'arastogi@hivespelling.com',
-  'erastogi@hivespelling.com'
+  {
+    email: 'arastogi@hivespelling.com',
+    name: 'Akshat',
+    color: 'bg-orange-500',
+    textColor: 'text-orange-100'
+  },
+  {
+    email: 'erastogi@hivespelling.com',
+    name: 'Ekansh',
+    color: 'bg-blue-500',
+    textColor: 'text-blue-100'
+  }
 ];
 
 const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // Handle different data structures for US vs Dubai
   const getBugTitle = () => {
     if (currentRegion === 'dubai') {
@@ -128,6 +140,10 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
   const priorityClass = severityLevels[getBugPriority()]?.borderColor || 'border-gray-500';
   const severityInfo = severityLevels[getBugPriority()];
   const currentAssignee = bug.assignee || 'Unassigned';
+  
+  // Find assignee info for display
+  const assigneeInfo = assignees.find(a => a.email === currentAssignee);
+  const isAssigned = assigneeInfo !== undefined;
 
   return (
     <Draggable draggableId={bug.id} index={index}>
@@ -136,7 +152,7 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`p-4 mb-3 bg-gray-800 rounded-lg border-l-4 ${priorityClass} ${snapshot.isDragging ? 'shadow-2xl scale-105' : 'shadow-md'} transition-all min-h-[280px]`}
+          className={`p-4 mb-3 bg-gray-800 rounded-lg border-l-4 ${priorityClass} ${snapshot.isDragging ? 'shadow-2xl scale-105' : 'shadow-md'} transition-all`}
         >
           <div className="flex justify-between items-start mb-3">
             <p className="font-semibold text-white flex-1 mr-2 text-sm leading-tight">{getBugTitle()}</p>
@@ -170,27 +186,50 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
           
           {/* Description */}
           <div className="mb-3">
-            <p className="text-xs text-gray-300 font-medium mb-1">Description:</p>
             <p className="text-xs text-gray-400 leading-relaxed">{getBugDescription()}</p>
           </div>
 
-          {/* Steps to Reproduce */}
-          <div className="mb-3">
-            <p className="text-xs text-gray-300 font-medium mb-1">Steps to Reproduce:</p>
-            <p className="text-xs text-gray-400 leading-relaxed">{getBugSteps()}</p>
+          {/* Expand/Collapse Button */}
+          <div className="flex justify-between items-center mb-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-gray-400 hover:text-white p-1 h-6"
+            >
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+              <span className="ml-1 text-xs">
+                {isExpanded ? 'Show Less' : 'Show More'}
+              </span>
+            </Button>
           </div>
 
-          {/* Expected vs Actual Behavior */}
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <p className="text-xs text-gray-300 font-medium mb-1">Expected:</p>
-              <p className="text-xs text-gray-400 leading-relaxed">{getBugExpectedBehavior()}</p>
+          {/* Expanded Content */}
+          {isExpanded && (
+            <div className="space-y-3 border-t border-gray-700 pt-3">
+              {/* Steps to Reproduce */}
+              <div>
+                <p className="text-xs text-gray-300 font-medium mb-1">Steps to Reproduce:</p>
+                <p className="text-xs text-gray-400 leading-relaxed">{getBugSteps()}</p>
+              </div>
+
+              {/* Expected vs Actual Behavior */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-300 font-medium mb-1">Expected:</p>
+                  <p className="text-xs text-gray-400 leading-relaxed">{getBugExpectedBehavior()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-300 font-medium mb-1">Actual:</p>
+                  <p className="text-xs text-gray-400 leading-relaxed">{getBugActualBehavior()}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-gray-300 font-medium mb-1">Actual:</p>
-              <p className="text-xs text-gray-400 leading-relaxed">{getBugActualBehavior()}</p>
-            </div>
-          </div>
+          )}
           
           {/* Platform and Reporter */}
           <div className="flex justify-between items-center mb-3">
@@ -208,10 +247,14 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="h-6 px-2 text-xs bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
+                  className={`h-6 px-2 text-xs border-gray-600 hover:opacity-80 transition-opacity ${
+                    isAssigned 
+                      ? `${assigneeInfo.color} ${assigneeInfo.textColor}` 
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
                 >
                   <User className="w-3 h-3 mr-1" />
-                  {currentAssignee === 'Unassigned' ? 'Unassigned' : currentAssignee.split('@')[0]}
+                  {isAssigned ? assigneeInfo.name : 'Unassigned'}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48 bg-gray-800 border-gray-700">
@@ -226,13 +269,13 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
                 </DropdownMenuItem>
                 {assignees.map((assignee) => (
                   <DropdownMenuItem 
-                    key={assignee}
-                    onClick={() => handleAssigneeChange(assignee)}
+                    key={assignee.email}
+                    onClick={() => handleAssigneeChange(assignee.email)}
                     className="focus:bg-gray-700 cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="text-white">{assignee.split('@')[0]}</span>
+                      <div className={`w-3 h-3 rounded-full ${assignee.color}`}></div>
+                      <span className="text-white">{assignee.name}</span>
                     </div>
                   </DropdownMenuItem>
                 ))}
@@ -358,7 +401,7 @@ export default function BugsPage() {
                   <div 
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className="p-4 min-h-[400px]"
+                    className="p-4 min-h-[300px]"
                   >
                     {getBugsByStatus(status).map((bug, index) => (
                       <BugCard 
