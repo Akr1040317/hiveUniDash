@@ -1,11 +1,20 @@
 
-import React, { useState, useEffect } from "react";
-import { Content } from "@/api/entities";
+import React, { useState, useEffect } from 'react';
+import { Content as ContentEntity, Quiz } from "@/api/entities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Edit2, Trash2, Eye, BookOpen, FileText } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -13,305 +22,526 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  FileText, 
-  HelpCircle,
-  BookOpen,
-  List,
-  Edit,
-  Eye,
-  MoreVertical
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
-import { motion } from "framer-motion";
-
-import ContentForm from "../components/content/ContentForm";
-import ContentStats from "../components/content/ContentStats";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ContentPage() {
-  const [content, setContent] = useState([]);
-  const [filteredContent, setFilteredContent] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingContent, setEditingContent] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
   const [currentRegion] = useState(localStorage.getItem('hive_region') || 'us');
+  const [content, setContent] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('content');
+
+  // Content form state
+  const [contentForm, setContentForm] = useState({
+    title: '',
+    description: '',
+    type: 'lesson',
+    status: 'draft'
+  });
+  const [isContentDialogOpen, setIsContentDialogOpen] = useState(false);
+
+  // Quiz form state
+  const [quizForm, setQuizForm] = useState({
+    quizName: '',
+    type: 'spelling',
+    numberOfWords: 100,
+    image: '',
+    words: [''],
+    userGroups: ['admin', 'userTier0', 'userTier1', 'userTier2', 'userTier3', 'userTier1AE']
+  });
+  const [isQuizDialogOpen, setIsQuizDialogOpen] = useState(false);
+  const [editingQuiz, setEditingQuiz] = useState(null);
 
   useEffect(() => {
-    loadContent();
+    loadData();
   }, [currentRegion]);
 
-  useEffect(() => {
-    filterContent();
-  }, [content, searchTerm, statusFilter, typeFilter]);
-
-  const loadContent = async () => {
+  const loadData = async () => {
     setIsLoading(true);
-    const data = await Content.filter({ region: currentRegion }, '-created_date');
-    setContent(data);
+    try {
+      const [contentData, quizzesData] = await Promise.all([
+        ContentEntity.filter({ region: currentRegion }),
+        Quiz.filter({ region: currentRegion })
+      ]);
+      setContent(contentData);
+      setQuizzes(quizzesData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
     setIsLoading(false);
   };
 
-  const filterContent = () => {
-    let filtered = content;
-
-    if (searchTerm) {
-      filtered = filtered.filter(c => 
-        c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const handleContentSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const newContent = await ContentEntity.create({
+        ...contentForm,
+        region: currentRegion
+      });
+      setContent([newContent, ...content]);
+      setContentForm({ title: '', description: '', type: 'lesson', status: 'draft' });
+      setIsContentDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating content:', error);
     }
-
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(c => c.status === statusFilter);
-    }
-
-    if (typeFilter !== "all") {
-      filtered = filtered.filter(c => c.type === typeFilter);
-    }
-
-    setFilteredContent(filtered);
   };
 
-  const handleSubmit = async (contentData) => {
-    const dataWithRegion = { ...contentData, region: currentRegion };
-    
-    if (editingContent) {
-      await Content.update(editingContent.id, dataWithRegion);
-    } else {
-      await Content.create(dataWithRegion);
+  const handleQuizSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const quizData = {
+        ...quizForm,
+        words: quizForm.words.filter(word => word.trim() !== ''),
+        userGroups: quizForm.userGroups.filter(group => group.trim() !== '')
+      };
+
+      if (editingQuiz) {
+        await Quiz.update(editingQuiz.id, quizData);
+        setQuizzes(quizzes.map(q => q.id === editingQuiz.id ? { ...editingQuiz, ...quizData } : q));
+        setEditingQuiz(null);
+      } else {
+        const newQuiz = await Quiz.create(quizData);
+        setQuizzes([newQuiz, ...quizzes]);
+      }
+
+      setQuizForm({
+        quizName: '',
+        type: 'spelling',
+        numberOfWords: 100,
+        image: '',
+        words: [''],
+        userGroups: ['admin', 'userTier0', 'userTier1', 'userTier2', 'userTier3', 'userTier1AE']
+      });
+      setIsQuizDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving quiz:', error);
     }
-    
-    setShowForm(false);
-    setEditingContent(null);
-    loadContent();
   };
 
-  const handleEdit = (contentItem) => {
-    setEditingContent(contentItem);
-    setShowForm(true);
+  const handleEditQuiz = (quiz) => {
+    setEditingQuiz(quiz);
+    setQuizForm({
+      quizName: quiz.quizName || '',
+      type: quiz.type || 'spelling',
+      numberOfWords: quiz.numberOfWords || 100,
+      image: quiz.image || '',
+      words: quiz.words && quiz.words.length > 0 ? quiz.words : [''],
+      userGroups: quiz.userGroups && quiz.userGroups.length > 0 ? quiz.userGroups : ['admin', 'userTier0', 'userTier1', 'userTier2', 'userTier3', 'userTier1AE']
+    });
+    setIsQuizDialogOpen(true);
   };
 
-  const getTypeIcon = (type) => {
-    const icons = {
-      lesson: BookOpen,
-      quiz: HelpCircle,
-      article: FileText,
-      word_list: List,
-      mini_lesson: BookOpen
-    };
-    const Icon = icons[type] || FileText;
-    return <Icon className="w-4 h-4" />;
+  const handleDeleteQuiz = async (quizId) => {
+    if (window.confirm('Are you sure you want to delete this quiz?')) {
+      try {
+        await Quiz.delete(quizId);
+        setQuizzes(quizzes.filter(q => q.id !== quizId));
+      } catch (error) {
+        console.error('Error deleting quiz:', error);
+      }
+    }
   };
 
-  const getStatusBadge = (status) => {
-    const variants = {
-      draft: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-      review: "bg-blue-500/20 text-blue-300 border-blue-500/30", 
-      published: "bg-green-500/20 text-green-300 border-green-500/30",
-      archived: "bg-red-500/20 text-red-300 border-red-500/30"
-    };
-    return (
-      <Badge className={`capitalize ${variants[status]}`}>
-        {status}
-      </Badge>
-    );
+  const addWord = () => {
+    setQuizForm({ ...quizForm, words: [...quizForm.words, ''] });
+  };
+
+  const removeWord = (index) => {
+    const newWords = quizForm.words.filter((_, i) => i !== index);
+    setQuizForm({ ...quizForm, words: newWords });
+  };
+
+  const updateWord = (index, value) => {
+    const newWords = [...quizForm.words];
+    newWords[index] = value;
+    setQuizForm({ ...quizForm, words: newWords });
+  };
+
+  const addUserGroup = () => {
+    setQuizForm({ ...quizForm, userGroups: [...quizForm.userGroups, ''] });
+  };
+
+  const removeUserGroup = (index) => {
+    const newGroups = quizForm.userGroups.filter((_, i) => i !== index);
+    setQuizForm({ ...quizForm, userGroups: newGroups });
+  };
+
+  const updateUserGroup = (index, value) => {
+    const newGroups = [...quizForm.userGroups];
+    newGroups[index] = value;
+    setQuizForm({ ...quizForm, userGroups: newGroups });
+  };
+
+  const regionInfo = {
+    us: { name: "United States", color: "bg-blue-400" },
+    dubai: { name: "UAE Prepcenter", color: "bg-amber-400" }
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="p-6 md:p-8 space-y-8 bg-gray-900 min-h-screen text-gray-200">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Content Management</h1>
-          <p className="text-gray-400">Create and manage lessons, quizzes, articles, and word lists</p>
+          <div className="flex items-center gap-3 mb-1">
+            <div className={`w-3 h-3 rounded-full ${regionInfo[currentRegion].color}`} />
+            <h1 className="text-3xl font-bold text-white">
+              {regionInfo[currentRegion].name} Content Management
+            </h1>
+          </div>
+          <p className="text-gray-400">
+            Manage your content and quizzes
+          </p>
         </div>
-        <Button 
-          onClick={() => setShowForm(true)}
-          className="bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Content
-        </Button>
       </div>
 
-      {/* Stats */}
-      <ContentStats content={content} />
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-gray-800">
+          <TabsTrigger value="content" className="data-[state=active]:bg-gray-700">
+            <FileText className="w-4 h-4 mr-2" />
+            Content
+          </TabsTrigger>
+          <TabsTrigger value="quizzes" className="data-[state=active]:bg-gray-700">
+            <BookOpen className="w-4 h-4 mr-2" />
+            Quizzes
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Content Form Modal */}
-      {showForm && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
-        >
-          <motion.div 
-            initial={{ scale: 0.95, y: -20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.95, y: -20 }}
-            className="bg-gray-900 border border-gray-700/50 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-          >
-            <ContentForm
-              content={editingContent}
-              onSubmit={handleSubmit}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingContent(null);
-              }}
-              currentRegion={currentRegion}
-            />
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Filters and Search */}
-      <Card className="bg-gray-800/50 border-gray-700/50">
-        <CardContent className="p-4 md:p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-              <Input
-                placeholder="Search content..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-900 border-gray-700 focus:border-amber-500"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-40 bg-gray-900 border-gray-700">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                <SelectItem value="all" className="focus:bg-gray-700">All Status</SelectItem>
-                <SelectItem value="draft" className="focus:bg-gray-700">Draft</SelectItem>
-                <SelectItem value="review" className="focus:bg-gray-700">In Review</SelectItem>
-                <SelectItem value="published" className="focus:bg-gray-700">Published</SelectItem>
-                <SelectItem value="archived" className="focus:bg-gray-700">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full md:w-40 bg-gray-900 border-gray-700">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                <SelectItem value="all" className="focus:bg-gray-700">All Types</SelectItem>
-                <SelectItem value="lesson" className="focus:bg-gray-700">Lessons</SelectItem>
-                <SelectItem value="quiz" className="focus:bg-gray-700">Quizzes</SelectItem>
-                <SelectItem value="article" className="focus:bg-gray-700">Articles</SelectItem>
-                <SelectItem value="word_list" className="focus:bg-gray-700">Word Lists</SelectItem>
-                <SelectItem value="mini_lesson" className="focus:bg-gray-700">Mini Lessons</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Content Tab */}
+        <TabsContent value="content" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-white">Content Library</h2>
+            <Dialog open={isContentDialogOpen} onOpenChange={setIsContentDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-amber-500 hover:bg-amber-600 text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Content
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-800 border-gray-700">
+                <DialogHeader>
+                  <DialogTitle className="text-white">Create New Content</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleContentSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="title" className="text-gray-300">Title</Label>
+                    <Input
+                      id="title"
+                      value={contentForm.title}
+                      onChange={(e) => setContentForm({ ...contentForm, title: e.target.value })}
+                      className="bg-gray-700 border-gray-600 text-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="description" className="text-gray-300">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={contentForm.description}
+                      onChange={(e) => setContentForm({ ...contentForm, description: e.target.value })}
+                      className="bg-gray-700 border-gray-600 text-white"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="type" className="text-gray-300">Type</Label>
+                      <Select value={contentForm.type} onValueChange={(value) => setContentForm({ ...contentForm, type: value })}>
+                        <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-700 border-gray-600">
+                          <SelectItem value="lesson">Lesson</SelectItem>
+                          <SelectItem value="video">Video</SelectItem>
+                          <SelectItem value="article">Article</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="status" className="text-gray-300">Status</Label>
+                      <Select value={contentForm.status} onValueChange={(value) => setContentForm({ ...contentForm, status: value })}>
+                        <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-700 border-gray-600">
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="published">Published</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setIsContentDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
+                      Create Content
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Content Table */}
-      <Card className="bg-gray-800/50 border-gray-700/50">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b-gray-700/50 hover:bg-gray-800/50">
-                  <TableHead className="text-gray-400">Content</TableHead>
-                  <TableHead className="text-gray-400">Type</TableHead>
-                  <TableHead className="text-gray-400">Status</TableHead>
-                  <TableHead className="text-gray-400">Author</TableHead>
-                  <TableHead className="text-gray-400">Created</TableHead>
-                  <TableHead className="text-gray-400"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredContent.map((contentItem) => (
-                  <TableRow key={contentItem.id} className="border-b-gray-800 hover:bg-gray-800">
-                    <TableCell className="max-w-xs">
-                      <div>
-                        <div className="font-medium text-white truncate">{contentItem.title}</div>
-                        <div className="text-sm text-gray-400 truncate">
-                          {contentItem.description}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {content.map((item) => (
+              <Card key={item.id} className="bg-gray-800/50 border-gray-700/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white text-lg">{item.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-gray-400 text-sm">{item.description}</p>
+                  <div className="flex items-center justify-between">
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs capitalize bg-blue-500/20 text-blue-300 border-blue-500/30"
+                    >
+                      {item.type}
+                    </Badge>
+                    <Badge 
+                      variant={item.status === 'published' ? 'default' : 'secondary'}
+                      className={`text-xs capitalize ${
+                        item.status === 'published' ? 'bg-green-500/20 text-green-300 border-green-500/30' :
+                        'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+                      }`}
+                    >
+                      {item.status}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {content.length === 0 && (
+              <div className="col-span-full text-center py-12 text-gray-500">
+                <FileText className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                <p className="text-lg">No content available</p>
+                <p className="text-sm">Create your first piece of content to get started</p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Quizzes Tab */}
+        <TabsContent value="quizzes" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-white">Quiz Management</h2>
+            <Dialog open={isQuizDialogOpen} onOpenChange={setIsQuizDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-purple-500 hover:bg-purple-600 text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Quiz
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-800 border-gray-700 max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-white">
+                    {editingQuiz ? 'Edit Quiz' : 'Create New Quiz'}
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleQuizSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="quizName" className="text-gray-300">Quiz Name</Label>
+                      <Input
+                        id="quizName"
+                        value={quizForm.quizName}
+                        onChange={(e) => setQuizForm({ ...quizForm, quizName: e.target.value })}
+                        className="bg-gray-700 border-gray-600 text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="type" className="text-gray-300">Type</Label>
+                      <Select value={quizForm.type} onValueChange={(value) => setQuizForm({ ...quizForm, type: value })}>
+                        <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-700 border-gray-600">
+                          <SelectItem value="spelling">Spelling</SelectItem>
+                          <SelectItem value="vocabulary">Vocabulary</SelectItem>
+                          <SelectItem value="grammar">Grammar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="numberOfWords" className="text-gray-300">Number of Words</Label>
+                      <Input
+                        id="numberOfWords"
+                        type="number"
+                        value={quizForm.numberOfWords}
+                        onChange={(e) => setQuizForm({ ...quizForm, numberOfWords: parseInt(e.target.value) })}
+                        className="bg-gray-700 border-gray-600 text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="image" className="text-gray-300">Image URL</Label>
+                      <Input
+                        id="image"
+                        value={quizForm.image}
+                        onChange={(e) => setQuizForm({ ...quizForm, image: e.target.value })}
+                        className="bg-gray-700 border-gray-600 text-white"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-gray-300">Words</Label>
+                    <div className="space-y-2">
+                      {quizForm.words.map((word, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={word}
+                            onChange={(e) => updateWord(index, e.target.value)}
+                            className="bg-gray-700 border-gray-600 text-white"
+                            placeholder={`Word ${index + 1}`}
+                            required
+                          />
+                          {quizForm.words.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeWord(index)}
+                              className="text-red-400 border-red-400 hover:bg-red-400/20"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 text-gray-300">
-                        {getTypeIcon(contentItem.type)}
-                        <span className="capitalize">{contentItem.type.replace('_', ' ')}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(contentItem.status)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-gray-300">{contentItem.author || 'Unassigned'}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-gray-400">
-                        {format(new Date(contentItem.created_date), 'MMM d, yyyy')}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-gray-700">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white">
-                          <DropdownMenuItem onClick={() => handleEdit(contentItem)} className="focus:bg-gray-700">
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="focus:bg-gray-700">
-                            <Eye className="w-4 h-4 mr-2" />
-                            Preview
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addWord}
+                        className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Word
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-gray-300">User Groups</Label>
+                    <div className="space-y-2">
+                      {quizForm.userGroups.map((group, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={group}
+                            onChange={(e) => updateUserGroup(index, e.target.value)}
+                            className="bg-gray-700 border-gray-600 text-white"
+                            placeholder="User group"
+                            required
+                          />
+                          {quizForm.userGroups.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeUserGroup(index)}
+                              className="text-red-400 border-red-400 hover:bg-red-400/20"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addUserGroup}
+                        className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add User Group
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setIsQuizDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" className="bg-purple-500 hover:bg-purple-600">
+                      {editingQuiz ? 'Update Quiz' : 'Create Quiz'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
-          
-          {filteredContent.length === 0 && (
-            <div className="text-center py-16 text-gray-500">
-              <FileText className="w-12 h-12 mx-auto text-gray-600 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">No content found</h3>
-              <p className="text-gray-400 mb-6">
-                {searchTerm || statusFilter !== "all" || typeFilter !== "all"
-                  ? "Try adjusting your filters"
-                  : "Get started by creating your first piece of content"
-                }
-              </p>
-              <Button onClick={() => setShowForm(true)} className="bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-500/20">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Content
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {quizzes.map((quiz) => (
+              <Card key={quiz.id} className="bg-gray-800/50 border-gray-700/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white text-lg">{quiz.quizName}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {quiz.image && (
+                    <div className="w-full h-32 bg-gray-700 rounded-lg overflow-hidden">
+                      <img 
+                        src={quiz.image} 
+                        alt={quiz.quizName}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge 
+                        variant="secondary" 
+                        className="text-xs capitalize bg-purple-500/20 text-purple-300 border-purple-500/30"
+                      >
+                        {quiz.type}
+                      </Badge>
+                      <span className="text-sm text-gray-400">{quiz.numberOfWords} words</span>
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      <p>Words: {quiz.words ? quiz.words.length : 0}</p>
+                      <p>User Groups: {quiz.userGroups ? quiz.userGroups.length : 0}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditQuiz(quiz)}
+                      className="flex-1 border-blue-500/30 text-blue-300 hover:bg-blue-500/20"
+                    >
+                      <Edit2 className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteQuiz(quiz.id)}
+                      className="border-red-500/30 text-red-300 hover:bg-red-500/20"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {quizzes.length === 0 && (
+              <div className="col-span-full text-center py-12 text-gray-500">
+                <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                <p className="text-lg">No quizzes available</p>
+                <p className="text-sm">Create your first quiz to get started</p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

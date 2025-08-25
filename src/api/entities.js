@@ -20,7 +20,12 @@ import {
   getEventById,
   createEvent,
   updateEvent,
-  deleteEvent
+  deleteEvent,
+  getQuizzes,
+  getQuiz,
+  createQuiz,
+  updateQuiz,
+  deleteQuiz
 } from '@/lib/firebaseService';
 
 // Content entity
@@ -200,6 +205,59 @@ export const Event = {
       return await deleteEvent(region, id);
     } catch (error) {
       console.error('Error deleting event:', error);
+      throw error;
+    }
+  }
+};
+
+// Quiz entity
+export const Quiz = {
+  filter: async (filters = {}, sortBy = null, limit = null) => {
+    try {
+      const currentRegion = localStorage.getItem('hive_region') || 'us';
+      return await getQuizzes(currentRegion);
+    } catch (error) {
+      console.error('Error filtering quizzes:', error);
+      return [];
+    }
+  },
+
+  get: async (id) => {
+    try {
+      const currentRegion = localStorage.getItem('hive_region') || 'us';
+      return await getQuiz(id, currentRegion);
+    } catch (error) {
+      console.error('Error getting quiz:', error);
+      return null;
+    }
+  },
+
+  create: async (quizData) => {
+    try {
+      const currentRegion = localStorage.getItem('hive_region') || 'us';
+      return await createQuiz(quizData, currentRegion);
+    } catch (error) {
+      console.error('Error creating quiz:', error);
+      throw error;
+    }
+  },
+
+  update: async (id, quizData) => {
+    try {
+      const currentRegion = localStorage.getItem('hive_region') || 'us';
+      return await updateQuiz(id, quizData, currentRegion);
+    } catch (error) {
+      console.error('Error updating quiz:', error);
+      throw error;
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      const currentRegion = localStorage.getItem('hive_region') || 'us';
+      return await deleteQuiz(id, currentRegion);
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
       throw error;
     }
   }

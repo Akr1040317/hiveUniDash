@@ -308,3 +308,77 @@ export const updateEvent = async (region, eventId, eventData) => {
 export const deleteEvent = async (region, eventId) => {
   throw new Error('Events collection not yet implemented');
 };
+
+// Quiz functions
+export const getQuizzes = async (region = 'us') => {
+  try {
+    const { db } = getFirebaseInstances(region);
+    const quizzesRef = collection(db, 'Quiz');
+    const querySnapshot = await getDocs(quizzesRef);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error getting quizzes:', error);
+    return [];
+  }
+};
+
+export const getQuiz = async (quizId, region = 'us') => {
+  try {
+    const { db } = getFirebaseInstances(region);
+    const quizRef = doc(db, 'Quiz', quizId);
+    const quizDoc = await getDoc(quizRef);
+    if (quizDoc.exists()) {
+      return { id: quizDoc.id, ...quizDoc.data() };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting quiz:', error);
+    return null;
+  }
+};
+
+export const createQuiz = async (quizData, region = 'us') => {
+  try {
+    const { db } = getFirebaseInstances(region);
+    const quizzesRef = collection(db, 'Quiz');
+    const docRef = await addDoc(quizzesRef, {
+      ...quizData,
+      createdAt: serverTimestamp(),
+      region: region
+    });
+    return { id: docRef.id, ...quizData };
+  } catch (error) {
+    console.error('Error creating quiz:', error);
+    throw error;
+  }
+};
+
+export const updateQuiz = async (quizId, updateData, region = 'us') => {
+  try {
+    const { db } = getFirebaseInstances(region);
+    const quizRef = doc(db, 'Quiz', quizId);
+    await updateDoc(quizRef, {
+      ...updateData,
+      updatedAt: serverTimestamp()
+    });
+    return { id: quizId, ...updateData };
+  } catch (error) {
+    console.error('Error updating quiz:', error);
+    throw error;
+  }
+};
+
+export const deleteQuiz = async (quizId, region = 'us') => {
+  try {
+    const { db } = getFirebaseInstances(region);
+    const quizRef = doc(db, 'Quiz', quizId);
+    await deleteDoc(quizRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting quiz:', error);
+    throw error;
+  }
+};
