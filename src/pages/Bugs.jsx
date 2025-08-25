@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bug } from "@/api/entities";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Flag, User, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Flag, User, ChevronDown, ChevronRight, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -246,6 +246,16 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
             <span className="text-xs text-gray-400">{getBugReporter()}</span>
           </div>
 
+          {/* Due Date */}
+          {bug.dueDate && (
+            <div className="mb-3">
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <Calendar className="w-3 h-3" />
+                <span>Due: {new Date(bug.dueDate).toLocaleDateString()}</span>
+              </div>
+            </div>
+          )}
+
           {/* Assignee */}
           <div className="mb-3">
             <p className="text-xs text-gray-300 font-medium mb-1">Assignee:</p>
@@ -336,8 +346,32 @@ export default function BugsPage() {
     
     try {
       setIsUpdating(true);
+      
+      // If moving to "In Progress", prompt for due date if not already set
+      let updateData = { status: newStatus };
+      
+      if (newStatus === 'in_progress') {
+        const bug = bugs.find(b => b.id === bugId);
+        if (!bug.dueDate) {
+          // Prompt for due date
+          const dueDate = prompt('Please enter a due date for this bug (YYYY-MM-DD):');
+          if (dueDate) {
+            updateData.dueDate = dueDate;
+          }
+        }
+      }
+      
       // Persist change to Firebase
-      await Bug.update(bugId, { status: newStatus });
+      await Bug.update(bugId, updateData);
+      
+      // Update local state with due date if added
+      if (updateData.dueDate) {
+        setBugs(prevBugs => 
+          prevBugs.map(b => 
+            b.id === bugId ? { ...b, ...updateData } : b
+          )
+        );
+      }
     } catch (error) {
       console.error('Error updating bug status:', error);
       // Revert optimistic update on error
