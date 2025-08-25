@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bug } from "@/api/entities";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Flag, User, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -122,8 +121,11 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
   };
 
   const handleSeverityChange = async (newSeverity) => {
+    console.log('handleSeverityChange called with:', newSeverity);
     try {
+      console.log('Updating bug severity for bug ID:', bug.id);
       await onUpdateBug(bug.id, { severity: newSeverity });
+      console.log('Severity updated successfully');
     } catch (error) {
       console.error('Error updating bug severity:', error);
     }
@@ -158,30 +160,35 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
             <p className="font-semibold text-white flex-1 mr-2 text-sm leading-tight">{getBugTitle()}</p>
             
             {/* Severity Flag - Clickable Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Badge 
-                  className={`${severityInfo?.color} ${severityInfo?.textColor} text-xs font-medium px-2 py-1 cursor-pointer hover:opacity-80 transition-opacity`}
-                >
-                  <Flag className="w-3 h-3 mr-1" />
-                  {severityInfo?.label}
-                </Badge>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-gray-800 border-gray-700">
-                {Object.entries(severityLevels).map(([level, info]) => (
-                  <DropdownMenuItem 
-                    key={level}
-                    onClick={() => handleSeverityChange(level)}
-                    className="focus:bg-gray-700 cursor-pointer"
+            <div className="relative">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    className={`${severityInfo?.color} ${severityInfo?.textColor} text-xs font-medium px-2 py-1 cursor-pointer hover:opacity-80 transition-opacity rounded-md flex items-center`}
                   >
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${info.color}`}></div>
-                      <span className="text-white">{info.label}</span>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                    <Flag className="w-3 h-3 mr-1" />
+                    {severityInfo?.label}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-gray-800 border-gray-700 z-50">
+                  {Object.entries(severityLevels).map(([level, info]) => (
+                    <DropdownMenuItem 
+                      key={level}
+                      onClick={() => {
+                        console.log('Changing severity to:', level);
+                        handleSeverityChange(level);
+                      }}
+                      className="focus:bg-gray-700 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${info.color}`}></div>
+                        <span className="text-white">{info.label}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
           
           {/* Description */}
