@@ -211,7 +211,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-4 gap-8">
         {/* Left Column - Deadlines & Due Dates */}
         <div className="space-y-6">
           {/* Feature Deadlines */}
@@ -354,7 +354,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Right Column - Quick Actions & Alerts */}
+        {/* Middle Column - Important Bugs */}
         <div className="space-y-6">
           {/* Important Bugs */}
           {criticalBugs.length > 0 && (
@@ -396,7 +396,10 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           )}
+        </div>
 
+        {/* Right Column - Webinars, Notes & Content */}
+        <div className="space-y-6">
           {/* Upcoming Webinars */}
           <Card className="bg-gray-800/50 border-gray-700/50">
             <CardHeader className="pb-3">
