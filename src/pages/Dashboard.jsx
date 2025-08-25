@@ -83,22 +83,11 @@ export default function Dashboard() {
         .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
         .slice(0, 5);
 
-      // Mock analytics data
-      const analyticsData = [
-        { name: 'Mon', users: 1200, lessons: 340 },
-        { name: 'Tue', users: 1890, lessons: 520 },
-        { name: 'Wed', users: 2390, lessons: 680 },
-        { name: 'Thu', users: 1890, lessons: 590 },
-        { name: 'Fri', users: 2490, lessons: 750 },
-        { name: 'Sat', users: 2890, lessons: 820 },
-        { name: 'Sun', users: 3190, lessons: 720 }
-      ];
-
       setStats({
         content: contentStats,
         bugs: bugStats,
         features: featureStats,
-        analytics: analyticsData
+        analytics: [] // Empty array - no mock data
       });
       setRecentContent(recent);
       setCriticalBugs(critical);
@@ -140,7 +129,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="bg-gray-800/50 border-gray-700/50">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -188,23 +177,6 @@ export default function Dashboard() {
             <div className="text-3xl font-bold text-white mb-2">{stats.features.inProgress}</div>
              <div className="flex items-center gap-4 text-xs text-gray-400">
               <span>{stats.features.completed} done</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800/50 border-gray-700/50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-400">Active Users</CardTitle>
-              <Users className="w-5 h-5 text-green-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white mb-2">3,190</div>
-            <div className="flex items-center gap-1 text-xs">
-              <TrendingUp className="w-3 h-3 text-green-400" />
-              <span className="text-green-400 font-medium">+12%</span>
-              <span className="text-gray-400">from last week</span>
             </div>
           </CardContent>
         </Card>
@@ -305,51 +277,59 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <AreaChart data={stats.analytics}>
-                  <defs>
-                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorLessons" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
-                  <YAxis stroke="#9ca3af" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(31, 41, 55, 0.8)', 
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }} 
-                    itemStyle={{ color: '#fff' }}
-                    labelStyle={{ color: '#fff' }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="users" 
-                    stroke="#3B82F6" 
-                    strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorUsers)"
-                    name="Active Users"
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="lessons" 
-                    stroke="#F59E0B" 
-                    strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorLessons)"
-                    name="Lessons Completed"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {stats.analytics.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={stats.analytics}>
+                    <defs>
+                      <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorLessons" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
+                    <YAxis stroke="#9ca3af" fontSize={12} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(31, 41, 55, 0.8)', 
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }} 
+                      itemStyle={{ color: '#fff' }}
+                      labelStyle={{ color: '#fff' }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="users" 
+                      stroke="#3B82F6" 
+                      strokeWidth={2}
+                      fillOpacity={1} 
+                      fill="url(#colorUsers)"
+                      name="Active Users"
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="lessons" 
+                      stroke="#F59E0B" 
+                      strokeWidth={2}
+                      fillOpacity={1} 
+                      fill="url(#colorLessons)"
+                      name="Lessons Completed"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                  <p className="text-sm">No activity data available</p>
+                  <p className="text-xs text-gray-600 mt-1">Create some content to see analytics</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -400,70 +380,6 @@ export default function Dashboard() {
 
         {/* Right Column - Webinars, Notes & Content */}
         <div className="space-y-6">
-          {/* Upcoming Webinars */}
-          <Card className="bg-gray-800/50 border-gray-700/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-400" />
-                Upcoming Webinars
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                <div className="font-medium text-sm text-white mb-1">Spelling Bee Prep Session</div>
-                <div className="text-xs text-gray-400 mb-2">Advanced vocabulary building techniques</div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-blue-400">Dec 15, 2024</span>
-                  <Badge variant="secondary" className="text-xs bg-blue-500/20 text-blue-300 border-blue-500/30">
-                    Virtual
-                  </Badge>
-                </div>
-              </div>
-              <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                <div className="font-medium text-sm text-white mb-1">Parent Workshop</div>
-                <div className="text-xs text-gray-400 mb-2">How to support your child's spelling journey</div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-blue-400">Dec 20, 2024</span>
-                  <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-300 border-green-500/30">
-                    In-Person
-                  </Badge>
-                </div>
-              </div>
-              <Link to={createPageUrl("Calendar")}>
-                <Button variant="outline" size="sm" className="w-full border-blue-500/30 text-blue-300 hover:bg-blue-500/20 hover:text-blue-200">
-                  View All Webinars
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Quick Notes */}
-          <Card className="bg-gray-800/50 border-gray-700/50">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white flex items-center gap-2">
-                <FileText className="w-5 h-5 text-green-400" />
-                Quick Notes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                <div className="text-xs text-gray-400 mb-2">Dec 10, 2024</div>
-                <div className="text-sm text-white">Remember to update the spelling word database with new regional variations</div>
-              </div>
-              <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                <div className="text-xs text-gray-400 mb-2">Dec 8, 2024</div>
-                <div className="text-sm text-white">Contact local schools about the upcoming spelling competition</div>
-              </div>
-              <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                <div className="text-xs text-gray-400 mb-2">Dec 5, 2024</div>
-                <div className="text-sm text-white">Review and approve new content submissions for Q1</div>
-              </div>
-              <Button variant="outline" size="sm" className="w-full border-green-500/30 text-green-300 hover:bg-green-500/20 hover:text-green-200">
-                Add Note
-              </Button>
-            </CardContent>
-          </Card>
-
           {/* Recent Content */}
           <Card className="bg-gray-800/50 border-gray-700/50">
             <CardHeader className="pb-3">
