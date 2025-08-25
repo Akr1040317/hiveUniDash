@@ -532,6 +532,12 @@ export default function CalendarPage() {
               </div>
             ))}
           </div>
+          {showCalComEvents && (
+            <div className="mt-3 p-2 bg-teal-500/10 border border-teal-500/20 rounded text-xs text-teal-300">
+              <p>💡 <strong>Cal.com Events:</strong> Due to CORS restrictions, you may see mock data for testing. 
+              Check the browser console for connection status.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
       
