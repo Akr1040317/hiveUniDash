@@ -56,7 +56,7 @@ class CalComService {
 
       const data = await response.json();
       console.log('Cal.com API response:', data);
-      return this.transformBookings(data.bookings || []);
+      return await this.transformBookings(data.bookings || []);
     } catch (error) {
       console.error('Error fetching Cal.com bookings:', error);
       
@@ -151,44 +151,74 @@ class CalComService {
   }
 
   // Transform Cal.com bookings to calendar events
-  transformBookings(bookings) {
+  async transformBookings(bookings) {
+    // First, get the event types to map IDs to titles
+    let eventTypes = [];
+    try {
+      eventTypes = await this.getEventTypes();
+    } catch (error) {
+      console.warn('Could not fetch event types for filtering:', error);
+    }
+
+    // Create a map of eventTypeId to eventType title
+    const eventTypeMap = {};
+    eventTypes.forEach(eventType => {
+      eventTypeMap[eventType.id] = eventType.title;
+    });
+
+    console.log('Event type map:', eventTypeMap);
+    console.log('Processing bookings:', bookings.length);
+
     return bookings
       .filter(booking => {
+        // Get the event type title from the map
+        const eventTypeTitle = eventTypeMap[booking.eventTypeId];
+        console.log(`Booking ${booking.id}: eventTypeId=${booking.eventTypeId}, title="${eventTypeTitle}"`);
+        
         // Filter by included/excluded event types if configured
         if (CALCOM_CONFIG.INCLUDED_EVENT_TYPES.length > 0) {
-          return CALCOM_CONFIG.INCLUDED_EVENT_TYPES.includes(booking.eventType?.title);
+          const isIncluded = CALCOM_CONFIG.INCLUDED_EVENT_TYPES.includes(eventTypeTitle);
+          console.log(`  Included check: ${isIncluded} (${eventTypeTitle} in ${JSON.stringify(CALCOM_CONFIG.INCLUDED_EVENT_TYPES)})`);
+          return isIncluded;
         }
         if (CALCOM_CONFIG.EXCLUDED_EVENT_TYPES.length > 0) {
-          return !CALCOM_CONFIG.EXCLUDED_EVENT_TYPES.includes(booking.eventType?.title);
+          return !CALCOM_CONFIG.EXCLUDED_EVENT_TYPES.includes(eventTypeTitle);
         }
         return true;
       })
-      .map(booking => ({
-        id: `calcom-${booking.id}`,
-        title: booking.title || 'Cal.com Meeting',
-        description: booking.description || '',
-        type: 'calcom',
-        startDate: booking.startTime.split('T')[0], // Extract date from ISO string
-        endDate: booking.endTime.split('T')[0],
-        startTime: booking.startTime.split('T')[1].substring(0, 5), // Extract time (HH:MM)
-        endTime: booking.endTime.split('T')[1].substring(0, 5),
-        location: booking.location || 'Virtual',
-        attendees: booking.attendees?.map(a => a.email).join(', ') || 'No attendees',
-        priority: 'medium',
-        originalData: booking,
-        // Cal.com specific fields
-        eventType: booking.eventType?.title || 'Unknown',
-        status: booking.status,
-        bookingId: booking.id,
-        organizer: booking.organizer?.name || 'Unknown',
-        timezone: booking.timezone || CALCOM_CONFIG.DEFAULT_TIMEZONE,
-        // Add Cal.com booking URL for easy access
-        bookingUrl: `https://cal.com/${this.username}/${booking.eventType?.slug || 'event'}`,
-        // Add status-based styling
-        isConfirmed: booking.status === 'ACCEPTED',
-        isPending: booking.status === 'PENDING',
-        isCancelled: booking.status === 'CANCELLED'
-      }));
+      .map(booking => {
+        const eventTypeTitle = eventTypeMap[booking.eventTypeId] || 'Unknown Event Type';
+        
+        const transformedEvent = {
+          id: `calcom-${booking.id}`,
+          title: booking.title || 'Cal.com Meeting',
+          description: booking.description || '',
+          type: 'calcom',
+          startDate: booking.startTime.split('T')[0], // Extract date from ISO string
+          endDate: booking.endTime.split('T')[0],
+          startTime: booking.startTime.split('T')[1].substring(0, 5), // Extract time (HH:MM)
+          endTime: booking.endTime.split('T')[1].substring(0, 5),
+          location: 'Virtual', // Cal.com events are typically virtual
+          attendees: booking.attendees?.map(a => a.email).join(', ') || 'No attendees',
+          priority: 'medium',
+          originalData: booking,
+          // Cal.com specific fields
+          eventType: eventTypeTitle,
+          status: booking.status,
+          bookingId: booking.id,
+          organizer: booking.user?.name || 'Unknown',
+          timezone: 'UTC', // Default timezone
+          // Add Cal.com booking URL for easy access
+          bookingUrl: `https://cal.com/${this.username}/${eventTypeMap[booking.eventTypeId]?.toLowerCase().replace(/\s+/g, '-') || 'event'}`,
+          // Add status-based styling
+          isConfirmed: booking.status === 'ACCEPTED',
+          isPending: booking.status === 'PENDING',
+          isCancelled: booking.status === 'CANCELLED' || booking.status === 'REJECTED'
+        };
+        
+        console.log(`Transformed event:`, transformedEvent);
+        return transformedEvent;
+      });
   }
 
   // Get bookings for a specific date range
