@@ -275,34 +275,86 @@ export default function Dashboard() {
 
         {/* Quick Actions & Alerts */}
         <div className="space-y-6">
-          {/* Critical Alerts */}
+          {/* Important Bugs */}
           {criticalBugs.length > 0 && (
             <Card className="border-red-500/30 bg-red-500/10">
               <CardHeader className="pb-3">
                 <CardTitle className="text-red-300 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5" />
-                  Critical Issues
+                  Important Bugs
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {criticalBugs.map((bug) => (
                   <div key={bug.id} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                    <div className="font-medium text-red-300 text-sm">
+                    <div className="font-medium text-red-300 text-sm mb-2">
                       {bug.subject || bug.title || 'Bug'}
                     </div>
-                    <div className="text-xs text-red-400 mt-1">
-                      {bug.device || bug.platform || 'Unknown platform'}
-                    </div>
-                    {bug.dueDate && (
-                      <div className="text-xs text-red-400 mt-1">
-                        Due: {new Date(bug.dueDate).toLocaleDateString()}
+                    {bug.description && (
+                      <div className="text-xs text-red-400 mb-2 line-clamp-2">
+                        {bug.description}
                       </div>
                     )}
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="text-red-400">
+                        <span className="font-medium">Severity:</span> {bug.severity || 'Unknown'}
+                      </div>
+                      {bug.dueDate && (
+                        <div className="text-red-400">
+                          <span className="font-medium">Due:</span> {new Date(bug.dueDate).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
                 <Link to={createPageUrl("Bugs")}>
                   <Button variant="outline" size="sm" className="w-full border-red-500/30 text-red-300 hover:bg-red-500/20 hover:text-red-200">
                     View All Bugs
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Feature Deadlines */}
+          {upcomingDueDates.filter(item => item.type !== 'Bug').length > 0 && (
+            <Card className="bg-gray-800/50 border-gray-700/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-purple-400" />
+                  Feature Deadlines
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {upcomingDueDates
+                  .filter(item => item.type !== 'Bug')
+                  .slice(0, 3)
+                  .map((feature) => (
+                    <div key={feature.id} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                      <div className="font-medium text-sm text-white mb-1">
+                        {feature.title}
+                      </div>
+                      {feature.description && (
+                        <div className="text-xs text-gray-400 mb-2 line-clamp-2">
+                          {feature.description}
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-xs">
+                        <Badge 
+                          variant="secondary" 
+                          className="text-xs capitalize bg-purple-500/20 text-purple-300 border-purple-500/30"
+                        >
+                          {feature.category || 'Feature'}
+                        </Badge>
+                        <span className="text-yellow-400 font-medium">
+                          Due: {new Date(feature.dueDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                <Link to={createPageUrl("Features")}>
+                  <Button variant="outline" size="sm" className="w-full border-purple-500/30 text-purple-300 hover:bg-purple-500/20 hover:text-purple-200">
+                    View All Features
                   </Button>
                 </Link>
               </CardContent>
