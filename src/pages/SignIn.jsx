@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Bee, Globe, Shield } from "lucide-react";
+import { Zap, Globe, Shield } from "lucide-react";
 import { getFirebaseInstances } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
@@ -112,7 +112,7 @@ export default function SignIn({ onSignIn }) {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <Bee className="w-8 h-8 text-white" />
+              <Zap className="w-8 h-8 text-white" />
             </div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Hive Dashboard</h1>
