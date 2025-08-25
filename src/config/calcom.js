@@ -23,7 +23,9 @@ export const CALCOM_CONFIG = {
     'Prepcenter Platform Demo',
     'Hive Education & Competition Consultation',
     'Hive Platform Demo',
-    'Networking'
+    'Networking',
+    'Hive Team Strategy Session',
+    'Prepcenter Coordination Meeting'
   ],
   
   // Event types to exclude

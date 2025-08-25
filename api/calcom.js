@@ -24,28 +24,40 @@ export default async function handler(req, res) {
       endpoint = '/event-types';
     }
 
-    // Build query parameters
+    // Build query parameters - Cal.com expects apiKey as a query parameter
     const queryParams = new URLSearchParams();
+    queryParams.append('apiKey', apiKey);
     queryParams.append('username', username);
     
     if (startTime) queryParams.append('startTime', startTime);
     if (endTime) queryParams.append('endTime', endTime);
 
-    // Make request to Cal.com API
-    const response = await fetch(`${baseUrl}${endpoint}?${queryParams}`, {
+    const fullUrl = `${baseUrl}${endpoint}?${queryParams}`;
+    console.log('Making request to Cal.com:', fullUrl);
+    console.log('Using API key:', apiKey.substring(0, 10) + '...');
+
+    // Make request to Cal.com API - without Authorization header, apiKey is in query params
+    const response = await fetch(fullUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
     });
+
+    console.log('Cal.com response status:', response.status);
+    console.log('Cal.com response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Cal.com API error: ${response.status} - ${errorText}`);
       
       if (response.status === 401) {
-        return res.status(401).json({ error: 'Cal.com API key is invalid or expired' });
+        return res.status(401).json({ 
+          error: 'Cal.com API key is invalid or expired',
+          details: errorText,
+          requestUrl: fullUrl,
+          apiKeyPrefix: apiKey.substring(0, 10) + '...'
+        });
       } else if (response.status === 403) {
         return res.status(403).json({ error: 'Cal.com API key does not have permission to access this resource' });
       } else if (response.status === 404) {
@@ -59,6 +71,7 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
+    console.log('Cal.com API response data:', JSON.stringify(data, null, 2));
     
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
