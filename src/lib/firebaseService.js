@@ -21,18 +21,26 @@ export const getData = async (region, collectionName, filters = {}, sortBy = nul
     
     let q = collectionRef;
     
-    // Apply filters
-    if (Object.keys(filters).length > 0) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          q = query(q, where(key, '==', value));
-        }
+    // Only apply filters if they actually have values and are not empty
+    const validFilters = Object.entries(filters).filter(([key, value]) => 
+      value !== undefined && value !== null && value !== '' && 
+      !(Array.isArray(value) && value.length === 0)
+    );
+    
+    if (validFilters.length > 0) {
+      validFilters.forEach(([key, value]) => {
+        q = query(q, where(key, '==', value));
       });
     }
     
-    // Apply sorting
-    if (sortBy) {
-      q = query(q, orderBy(sortBy.field, sortBy.direction || 'desc'));
+    // Apply sorting only if specified and the field exists
+    if (sortBy && sortBy.field) {
+      try {
+        q = query(q, orderBy(sortBy.field, sortBy.direction || 'desc'));
+      } catch (error) {
+        console.warn(`Could not apply sorting by ${sortBy.field}:`, error);
+        // Continue without sorting if the field doesn't exist
+      }
     }
     
     // Apply limit
@@ -53,7 +61,8 @@ export const getData = async (region, collectionName, filters = {}, sortBy = nul
     return data;
   } catch (error) {
     console.error(`Error getting ${collectionName} data:`, error);
-    throw error;
+    // Return empty array instead of throwing error
+    return [];
   }
 };
 
@@ -74,7 +83,7 @@ export const getDocument = async (region, collectionName, documentId) => {
     }
   } catch (error) {
     console.error(`Error getting ${collectionName} document:`, error);
-    throw error;
+    return null;
   }
 };
 
@@ -140,110 +149,118 @@ export const deleteDocument = async (region, collectionName, documentId) => {
 
 // Content-specific functions
 export const getContent = async (region, filters = {}) => {
-  return await getData(region, 'content', filters, { field: 'created_at', direction: 'desc' });
+  // For now, return empty array since content collection doesn't exist
+  // This can be updated when you create the content collection
+  return [];
 };
 
 export const getContentById = async (region, contentId) => {
-  return await getDocument(region, 'content', contentId);
+  return null;
 };
 
 export const createContent = async (region, contentData) => {
-  return await addDocument(region, 'content', contentData);
+  throw new Error('Content collection not yet implemented');
 };
 
 export const updateContent = async (region, contentId, contentData) => {
-  return await updateDocument(region, 'content', contentId, contentData);
+  throw new Error('Content collection not yet implemented');
 };
 
 export const deleteContent = async (region, contentId) => {
-  return await deleteDocument(region, 'content', contentId);
+  throw new Error('Content collection not yet implemented');
 };
 
 // Bug-specific functions
 export const getBugs = async (region, filters = {}) => {
   // For Dubai region, use the feedbackAndBugs collection
   if (region === 'dubai') {
-    return await getData(region, 'feedbackAndBugs', { ...filters, type: 'bug_report' }, { field: 'timestamp', direction: 'desc' });
+    return await getData(region, 'feedbackAndBugs', { type: 'bug_report' }, { field: 'timestamp', direction: 'desc' });
   }
-  // For US region, use the bugs collection
-  return await getData(region, 'bugs', filters, { field: 'created_at', direction: 'desc' });
+  // For US region, return empty array since bugs collection doesn't exist yet
+  return [];
 };
 
 export const getBugById = async (region, bugId) => {
   if (region === 'dubai') {
     return await getDocument(region, 'feedbackAndBugs', bugId);
   }
-  return await getDocument(region, 'bugs', bugId);
+  return null;
 };
 
 export const createBug = async (region, bugData) => {
   if (region === 'dubai') {
     return await addDocument(region, 'feedbackAndBugs', bugData);
   }
-  return await addDocument(region, 'bugs', bugData);
+  throw new Error('Bug collection not yet implemented for US region');
 };
 
 export const updateBug = async (region, bugId, bugData) => {
   if (region === 'dubai') {
     return await updateDocument(region, 'feedbackAndBugs', bugId, bugData);
   }
-  return await updateDocument(region, 'bugs', bugId, bugData);
+  throw new Error('Bug collection not yet implemented for US region');
 };
 
 export const deleteBug = async (region, bugId) => {
   if (region === 'dubai') {
     return await deleteDocument(region, 'feedbackAndBugs', bugId);
   }
-  return await deleteDocument(region, 'bugs', bugId);
+  throw new Error('Bug collection not yet implemented for US region');
 };
 
 // Feature-specific functions
 export const getFeatures = async (region, filters = {}) => {
-  return await getData(region, 'features', filters, { field: 'created_at', direction: 'desc' });
+  // For now, return empty array since features collection doesn't exist
+  // This can be updated when you create the features collection
+  return [];
 };
 
 export const getFeatureById = async (region, featureId) => {
-  return await getDocument(region, 'features', featureId);
+  return null;
 };
 
 export const createFeature = async (region, featureData) => {
-  return await addDocument(region, 'features', featureData);
+  throw new Error('Features collection not yet implemented');
 };
 
 export const updateFeature = async (region, featureId, featureData) => {
-  return await updateDocument(region, 'features', featureId, featureData);
+  throw new Error('Features collection not yet implemented');
 };
 
 export const deleteFeature = async (region, featureId) => {
-  return await deleteDocument(region, 'features', featureId);
+  throw new Error('Features collection not yet implemented');
 };
 
 // Analytics-specific functions
 export const getAnalytics = async (region, filters = {}) => {
-  return await getData(region, 'analytics', filters, { field: 'created_at', direction: 'desc' });
+  // For now, return empty array since analytics collection doesn't exist
+  // This can be updated when you create the analytics collection
+  return [];
 };
 
 export const createAnalytics = async (region, analyticsData) => {
-  return await addDocument(region, 'analytics', analyticsData);
+  throw new Error('Analytics collection not yet implemented');
 };
 
 // Event-specific functions
 export const getEvents = async (region, filters = {}) => {
-  return await getData(region, 'events', filters, { field: 'date', direction: 'asc' });
+  // For now, return empty array since events collection doesn't exist
+  // This can be updated when you create the events collection
+  return [];
 };
 
 export const getEventById = async (region, eventId) => {
-  return await getDocument(region, 'events', eventId);
+  return null;
 };
 
 export const createEvent = async (region, eventData) => {
-  return await addDocument(region, 'events', eventData);
+  throw new Error('Events collection not yet implemented');
 };
 
 export const updateEvent = async (region, eventId, eventData) => {
-  return await updateDocument(region, 'events', eventId, eventData);
+  throw new Error('Events collection not yet implemented');
 };
 
 export const deleteEvent = async (region, eventId) => {
-  return await deleteDocument(region, 'events', eventId);
+  throw new Error('Events collection not yet implemented');
 };

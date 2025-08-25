@@ -28,8 +28,7 @@ export const Content = {
   filter: async (filters, sort) => {
     try {
       const region = localStorage.getItem('hive_region') || 'us';
-      const sortConfig = sort ? { field: sort.replace('-', ''), direction: sort.startsWith('-') ? 'desc' : 'asc' } : null;
-      return await getContent(region, filters, sortConfig);
+      return await getContent(region, filters);
     } catch (error) {
       console.error('Error filtering content:', error);
       return [];
@@ -69,8 +68,7 @@ export const Bug = {
   filter: async (filters, sort) => {
     try {
       const region = localStorage.getItem('hive_region') || 'us';
-      const sortConfig = sort ? { field: sort.replace('-', ''), direction: sort.startsWith('-') ? 'desc' : 'asc' } : null;
-      return await getBugs(region, filters, sortConfig);
+      return await getBugs(region, filters);
     } catch (error) {
       console.error('Error filtering bugs:', error);
       return [];
@@ -110,8 +108,7 @@ export const Feature = {
   filter: async (filters, sort) => {
     try {
       const region = localStorage.getItem('hive_region') || 'us';
-      const sortConfig = sort ? { field: sort.replace('-', ''), direction: sort.startsWith('-') ? 'desc' : 'asc' } : null;
-      return await getFeatures(region, filters, sortConfig);
+      return await getFeatures(region, filters);
     } catch (error) {
       console.error('Error filtering features:', error);
       return [];
@@ -151,8 +148,7 @@ export const Analytics = {
   filter: async (filters, sort) => {
     try {
       const region = localStorage.getItem('hive_region') || 'us';
-      const sortConfig = sort ? { field: sort.replace('-', ''), direction: sort.startsWith('-') ? 'desc' : 'asc' } : null;
-      return await getAnalytics(region, filters, sortConfig);
+      return await getAnalytics(region, filters);
     } catch (error) {
       console.error('Error filtering analytics:', error);
       return [];
@@ -174,8 +170,7 @@ export const Event = {
   filter: async (filters, sort) => {
     try {
       const region = localStorage.getItem('hive_region') || 'us';
-      const sortConfig = sort ? { field: sort.replace('-', ''), direction: sort.startsWith('-') ? 'asc' : 'desc' } : null;
-      return await getEvents(region, filters, sortConfig);
+      return await getEvents(region, filters);
     } catch (error) {
       console.error('Error filtering events:', error);
       return [];
