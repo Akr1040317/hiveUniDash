@@ -3,7 +3,7 @@ import { Bug } from "@/api/entities";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Flag, Edit2 } from 'lucide-react';
+import { Plus, Flag, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -46,9 +46,12 @@ const severityLevels = {
   }
 };
 
-const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
-  const [isEditing, setIsEditing] = useState(false);
+const assignees = [
+  'arastogi@hivespelling.com',
+  'erastogi@hivespelling.com'
+];
 
+const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
   // Handle different data structures for US vs Dubai
   const getBugTitle = () => {
     if (currentRegion === 'dubai') {
@@ -85,17 +88,46 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
     return bug.description || 'No description provided';
   };
 
+  const getBugSteps = () => {
+    if (currentRegion === 'dubai') {
+      return bug.stepsToReproduce || 'No steps provided';
+    }
+    return bug.stepsToReproduce || 'No steps provided';
+  };
+
+  const getBugExpectedBehavior = () => {
+    if (currentRegion === 'dubai') {
+      return bug.expectedBehavior || 'No expected behavior specified';
+    }
+    return bug.expectedBehavior || 'No expected behavior specified';
+  };
+
+  const getBugActualBehavior = () => {
+    if (currentRegion === 'dubai') {
+      return bug.actualBehavior || 'No actual behavior specified';
+    }
+    return bug.actualBehavior || 'No actual behavior specified';
+  };
+
   const handleSeverityChange = async (newSeverity) => {
     try {
       await onUpdateBug(bug.id, { severity: newSeverity });
-      setIsEditing(false);
     } catch (error) {
       console.error('Error updating bug severity:', error);
     }
   };
 
+  const handleAssigneeChange = async (newAssignee) => {
+    try {
+      await onUpdateBug(bug.id, { assignee: newAssignee });
+    } catch (error) {
+      console.error('Error updating bug assignee:', error);
+    }
+  };
+
   const priorityClass = severityLevels[getBugPriority()]?.borderColor || 'border-gray-500';
   const severityInfo = severityLevels[getBugPriority()];
+  const currentAssignee = bug.assignee || 'Unassigned';
 
   return (
     <Draggable draggableId={bug.id} index={index}>
@@ -104,61 +136,114 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`p-4 mb-3 bg-gray-800 rounded-lg border-l-4 ${priorityClass} ${snapshot.isDragging ? 'shadow-2xl scale-105' : 'shadow-md'} transition-all`}
+          className={`p-4 mb-3 bg-gray-800 rounded-lg border-l-4 ${priorityClass} ${snapshot.isDragging ? 'shadow-2xl scale-105' : 'shadow-md'} transition-all min-h-[280px]`}
         >
-          <div className="flex justify-between items-start mb-2">
-            <p className="font-semibold text-white flex-1 mr-2">{getBugTitle()}</p>
-            <div className="flex items-center gap-2">
-              {/* Severity Flag */}
-              <Badge 
-                className={`${severityInfo?.color} ${severityInfo?.textColor} text-xs font-medium px-2 py-1`}
-              >
-                <Flag className="w-3 h-3 mr-1" />
-                {severityInfo?.label}
-              </Badge>
-              
-              {/* Edit Severity Button */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                    onClick={(e) => e.stopPropagation()}
+          <div className="flex justify-between items-start mb-3">
+            <p className="font-semibold text-white flex-1 mr-2 text-sm leading-tight">{getBugTitle()}</p>
+            
+            {/* Severity Flag - Clickable Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Badge 
+                  className={`${severityInfo?.color} ${severityInfo?.textColor} text-xs font-medium px-2 py-1 cursor-pointer hover:opacity-80 transition-opacity`}
+                >
+                  <Flag className="w-3 h-3 mr-1" />
+                  {severityInfo?.label}
+                </Badge>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-gray-800 border-gray-700">
+                {Object.entries(severityLevels).map(([level, info]) => (
+                  <DropdownMenuItem 
+                    key={level}
+                    onClick={() => handleSeverityChange(level)}
+                    className="focus:bg-gray-700 cursor-pointer"
                   >
-                    <Edit2 className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-gray-800 border-gray-700">
-                  {Object.entries(severityLevels).map(([level, info]) => (
-                    <DropdownMenuItem 
-                      key={level}
-                      onClick={() => handleSeverityChange(level)}
-                      className="focus:bg-gray-700 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${info.color}`}></div>
-                        <span className="text-white">{info.label}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${info.color}`}></div>
+                      <span className="text-white">{info.label}</span>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
+          {/* Description */}
+          <div className="mb-3">
+            <p className="text-xs text-gray-300 font-medium mb-1">Description:</p>
+            <p className="text-xs text-gray-400 leading-relaxed">{getBugDescription()}</p>
+          </div>
+
+          {/* Steps to Reproduce */}
+          <div className="mb-3">
+            <p className="text-xs text-gray-300 font-medium mb-1">Steps to Reproduce:</p>
+            <p className="text-xs text-gray-400 leading-relaxed">{getBugSteps()}</p>
+          </div>
+
+          {/* Expected vs Actual Behavior */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <p className="text-xs text-gray-300 font-medium mb-1">Expected:</p>
+              <p className="text-xs text-gray-400 leading-relaxed">{getBugExpectedBehavior()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-300 font-medium mb-1">Actual:</p>
+              <p className="text-xs text-gray-400 leading-relaxed">{getBugActualBehavior()}</p>
             </div>
           </div>
           
-          <p className="text-xs text-gray-400 mb-2 line-clamp-2">{getBugDescription()}</p>
-          
-          <div className="flex justify-between items-center text-xs text-gray-400">
+          {/* Platform and Reporter */}
+          <div className="flex justify-between items-center mb-3">
             <Badge variant="secondary" className="capitalize text-xs bg-gray-700 text-gray-300">
               {getBugPlatform()}
             </Badge>
-            <span>{getBugReporter()}</span>
+            <span className="text-xs text-gray-400">{getBugReporter()}</span>
+          </div>
+
+          {/* Assignee */}
+          <div className="mb-3">
+            <p className="text-xs text-gray-300 font-medium mb-1">Assignee:</p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-6 px-2 text-xs bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-300"
+                >
+                  <User className="w-3 h-3 mr-1" />
+                  {currentAssignee === 'Unassigned' ? 'Unassigned' : currentAssignee.split('@')[0]}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48 bg-gray-800 border-gray-700">
+                <DropdownMenuItem 
+                  onClick={() => handleAssigneeChange('Unassigned')}
+                  className="focus:bg-gray-700 cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <span className="text-white">Unassigned</span>
+                  </div>
+                </DropdownMenuItem>
+                {assignees.map((assignee) => (
+                  <DropdownMenuItem 
+                    key={assignee}
+                    onClick={() => handleAssigneeChange(assignee)}
+                    className="focus:bg-gray-700 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span className="text-white">{assignee.split('@')[0]}</span>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           
+          {/* Timestamp */}
           {currentRegion === 'dubai' && bug.timestamp && (
-            <div className="text-xs text-gray-500 mt-2">
-              {new Date(bug.timestamp.toDate ? bug.timestamp.toDate() : bug.timestamp).toLocaleDateString()}
+            <div className="text-xs text-gray-500">
+              Reported: {new Date(bug.timestamp.toDate ? bug.timestamp.toDate() : bug.timestamp).toLocaleDateString()}
             </div>
           )}
         </div>
@@ -273,7 +358,7 @@ export default function BugsPage() {
                   <div 
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className="p-4 min-h-[300px]"
+                    className="p-4 min-h-[400px]"
                   >
                     {getBugsByStatus(status).map((bug, index) => (
                       <BugCard 
