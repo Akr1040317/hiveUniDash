@@ -212,110 +212,8 @@ export default function Dashboard() {
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Analytics Chart */}
-        <Card className="lg:col-span-2 bg-gray-800/50 border-gray-700/50">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-white">
-              <span>Weekly Activity</span>
-              <Link to={createPageUrl("Analytics")}>
-                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-                  View Details <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={stats.analytics}>
-                <defs>
-                  <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorLessons" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
-                <YAxis stroke="#9ca3af" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(31, 41, 55, 0.8)', 
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }} 
-                  itemStyle={{ color: '#fff' }}
-                  labelStyle={{ color: '#fff' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="users" 
-                  stroke="#3B82F6" 
-                  strokeWidth={2}
-                  fillOpacity={1} 
-                  fill="url(#colorUsers)"
-                  name="Active Users"
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="lessons" 
-                  stroke="#F59E0B" 
-                  strokeWidth={2}
-                  fillOpacity={1} 
-                  fill="url(#colorLessons)"
-                  name="Lessons Completed"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions & Alerts */}
+        {/* Left Column - Deadlines & Due Dates */}
         <div className="space-y-6">
-          {/* Important Bugs */}
-          {criticalBugs.length > 0 && (
-            <Card className="border-red-500/30 bg-red-500/10">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-red-300 flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5" />
-                  Important Bugs
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {criticalBugs.map((bug) => (
-                  <div key={bug.id} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                    <div className="font-medium text-red-300 text-sm mb-2">
-                      {bug.subject || bug.title || 'Bug'}
-                    </div>
-                    {bug.description && (
-                      <div className="text-xs text-red-400 mb-2 line-clamp-2">
-                        {bug.description}
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="text-red-400">
-                        <span className="font-medium">Severity:</span> {bug.severity || 'Unknown'}
-                      </div>
-                      {bug.dueDate && (
-                        <div className="text-red-400">
-                          <span className="font-medium">Due:</span> {new Date(bug.dueDate).toLocaleDateString()}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                <Link to={createPageUrl("Bugs")}>
-                  <Button variant="outline" size="sm" className="w-full border-red-500/30 text-red-300 hover:bg-red-500/20 hover:text-red-200">
-                    View All Bugs
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Feature Deadlines */}
           {upcomingDueDates.filter(item => item.type !== 'Bug').length > 0 && (
             <Card className="bg-gray-800/50 border-gray-700/50">
@@ -371,7 +269,7 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {upcomingDueDates.map((item) => (
+                {upcomingDueDates.slice(0, 5).map((item) => (
                   <div key={item.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
                     <div>
                       <div className="font-medium text-sm text-white">{item.title}</div>
@@ -388,6 +286,111 @@ export default function Dashboard() {
                 <Link to={createPageUrl("Bugs")}>
                   <Button variant="outline" size="sm" className="w-full border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 hover:text-yellow-200">
                     View All Due Dates
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Weekly Activity Chart */}
+          <Card className="bg-gray-800/50 border-gray-700/50">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between text-white">
+                <span>Weekly Activity</span>
+                <Link to={createPageUrl("Analytics")}>
+                  <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+                    View Details <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </Link>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={stats.analytics}>
+                  <defs>
+                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorLessons" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
+                  <YAxis stroke="#9ca3af" fontSize={12} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(31, 41, 55, 0.8)', 
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      color: '#fff'
+                    }} 
+                    itemStyle={{ color: '#fff' }}
+                    labelStyle={{ color: '#fff' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="users" 
+                    stroke="#3B82F6" 
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#colorUsers)"
+                    name="Active Users"
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="lessons" 
+                    stroke="#F59E0B" 
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#colorLessons)"
+                    name="Lessons Completed"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Quick Actions & Alerts */}
+        <div className="space-y-6">
+          {/* Important Bugs */}
+          {criticalBugs.length > 0 && (
+            <Card className="border-red-500/30 bg-red-500/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-red-300 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Important Bugs
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {criticalBugs.map((bug) => (
+                  <div key={bug.id} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                    <div className="font-medium text-red-300 text-sm mb-2">
+                      {bug.subject || bug.title || 'Bug'}
+                    </div>
+                    {bug.description && (
+                      <div className="text-xs text-red-400 mb-2 line-clamp-2">
+                        {bug.description}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="text-red-400">
+                        <span className="font-medium">Severity:</span> {bug.severity || 'Unknown'}
+                      </div>
+                      {bug.dueDate && (
+                        <div className="text-red-400">
+                          <span className="font-medium">Due:</span> {new Date(bug.dueDate).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <Link to={createPageUrl("Bugs")}>
+                  <Button variant="outline" size="sm" className="w-full border-red-500/30 text-red-300 hover:bg-red-500/20 hover:text-red-200">
+                    View All Bugs
                   </Button>
                 </Link>
               </CardContent>
