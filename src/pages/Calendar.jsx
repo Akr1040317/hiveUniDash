@@ -671,7 +671,7 @@ export default function CalendarPage() {
 
               {/* Cal.com Specific Information */}
               {selectedEvent.type === 'calcom' && selectedEvent.originalData && (
-                <>
+                <div>
                   <Separator className="bg-gray-600" />
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-teal-300">Cal.com Details</h3>
@@ -753,8 +753,8 @@ export default function CalendarPage() {
                         </div>
                       </div>
                     )}
-                  </>
-                )}
+                  </div>
+                </div>
               )}
 
               {/* Action Buttons */}
