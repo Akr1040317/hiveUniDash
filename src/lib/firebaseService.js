@@ -314,7 +314,8 @@ export const getQuizzes = async (region = 'us') => {
   try {
     const { db } = getFirebaseInstances(region);
     const quizzesRef = collection(db, 'Quiz');
-    const querySnapshot = await getDocs(quizzesRef);
+    const q = query(quizzesRef, where('userGroups', 'array-contains', 'userTier1AE'));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()

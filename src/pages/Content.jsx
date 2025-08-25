@@ -324,7 +324,10 @@ export default function ContentPage() {
         {/* Quizzes Tab */}
         <TabsContent value="quizzes" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-white">Quiz Management</h2>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Quiz Management</h2>
+              <p className="text-sm text-gray-400 mt-1">Showing only quizzes with userTier1AE access</p>
+            </div>
             <Dialog open={isQuizDialogOpen} onOpenChange={setIsQuizDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-purple-500 hover:bg-purple-600 text-white">
