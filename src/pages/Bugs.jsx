@@ -10,6 +10,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const columns = {
   new: { name: 'New', color: 'bg-blue-500' },
@@ -312,10 +326,65 @@ const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
   );
 };
 
+const DueDatePicker = ({ isOpen, onClose, onDateSelected, bugTitle }) => {
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  const handleConfirm = () => {
+    if (selectedDate) {
+      onDateSelected(format(selectedDate, 'yyyy-MM-dd'));
+    }
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-gray-800 border-gray-700">
+        <DialogHeader>
+          <DialogTitle className="text-white">Set Due Date for Bug</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-gray-300 text-sm">
+            Setting due date for: <span className="font-semibold text-white">{bugTitle}</span>
+          </p>
+          
+          <div>
+            <label className="text-gray-300 text-sm mb-2 block">Select Due Date</label>
+            <CalendarComponent
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              initialFocus
+              className="bg-gray-800 text-white"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirm}
+              disabled={!selectedDate}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Set Due Date
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export default function BugsPage() {
   const [bugs, setBugs] = useState([]);
   const [currentRegion] = useState(localStorage.getItem('hive_region') || 'us');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [dueDatePicker, setDueDatePicker] = useState({
+    isOpen: false,
+    bugId: null,
+    bugTitle: ''
+  });
 
   useEffect(() => {
     loadBugs();
@@ -353,11 +422,13 @@ export default function BugsPage() {
       if (newStatus === 'in_progress') {
         const bug = bugs.find(b => b.id === bugId);
         if (!bug.dueDate) {
-          // Prompt for due date
-          const dueDate = prompt('Please enter a due date for this bug (YYYY-MM-DD):');
-          if (dueDate) {
-            updateData.dueDate = dueDate;
-          }
+          // Open due date picker
+          setDueDatePicker({
+            isOpen: true,
+            bugId: bugId,
+            bugTitle: bug.title || bug.subject || 'Bug'
+          });
+          return; // Don't update yet, wait for date selection
         }
       }
       
@@ -376,6 +447,34 @@ export default function BugsPage() {
       console.error('Error updating bug status:', error);
       // Revert optimistic update on error
       setBugs(bugs);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDueDateSelected = async (dueDate) => {
+    if (!dueDatePicker.bugId) return;
+    
+    try {
+      setIsUpdating(true);
+      
+      // Update bug with status and due date
+      await Bug.update(dueDatePicker.bugId, { 
+        status: 'in_progress',
+        dueDate: dueDate 
+      });
+      
+      // Update local state
+      setBugs(prevBugs => 
+        prevBugs.map(b => 
+          b.id === dueDatePicker.bugId ? { ...b, status: 'in_progress', dueDate } : b
+        )
+      );
+      
+      // Close picker
+      setDueDatePicker({ isOpen: false, bugId: null, bugTitle: '' });
+    } catch (error) {
+      console.error('Error updating bug with due date:', error);
     } finally {
       setIsUpdating(false);
     }
@@ -461,6 +560,13 @@ export default function BugsPage() {
           ))}
         </div>
       </DragDropContext>
+
+      <DueDatePicker
+        isOpen={dueDatePicker.isOpen}
+        onClose={() => setDueDatePicker({ ...dueDatePicker, isOpen: false })}
+        onDateSelected={handleDueDateSelected}
+        bugTitle={dueDatePicker.bugTitle}
+      />
     </div>
   );
 }

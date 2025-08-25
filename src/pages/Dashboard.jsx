@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [currentRegion] = useState(localStorage.getItem('hive_region') || 'us');
   const [recentContent, setRecentContent] = useState([]);
   const [criticalBugs, setCriticalBugs] = useState([]);
+  const [upcomingDueDates, setUpcomingDueDates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -49,8 +50,8 @@ export default function Dashboard() {
       const allBugs = await Bug.filter({ region: [currentRegion, 'both'] });
       const bugStats = {
         total: allBugs.length,
-        open: allBugs.filter(b => b.status === 'open').length,
-        critical: allBugs.filter(b => b.priority === 'critical').length
+        open: allBugs.filter(b => b.status === 'open' || b.status === 'new').length,
+        critical: allBugs.filter(b => b.severity === 'Critical - System down').length
       };
 
       // Load feature stats
@@ -64,12 +65,23 @@ export default function Dashboard() {
       // Load recent content
       const recent = await Content.filter({ region: currentRegion }, '-created_date', 5);
       
-      // Load critical bugs
+      // Load critical bugs (using severity instead of priority)
       const critical = await Bug.filter({ 
         region: [currentRegion, 'both'],
-        priority: 'critical',
-        status: 'open'
-      }, '-created_date', 3);
+        severity: 'Critical - System down',
+        status: ['new', 'open', 'in_progress']
+      }, '-timestamp', 3);
+
+      // Load upcoming due dates (bugs and features)
+      const now = new Date();
+      const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+      
+      const bugsWithDueDates = allBugs.filter(b => b.dueDate && new Date(b.dueDate) <= thirtyDaysFromNow);
+      const featuresWithDueDates = allFeatures.filter(f => f.dueDate && new Date(f.dueDate) <= thirtyDaysFromNow);
+      
+      const allDueDates = [...bugsWithDueDates, ...featuresWithDueDates]
+        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+        .slice(0, 5);
 
       // Mock analytics data
       const analyticsData = [
@@ -90,6 +102,7 @@ export default function Dashboard() {
       });
       setRecentContent(recent);
       setCriticalBugs(critical);
+      setUpcomingDueDates(allDueDates);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     }
@@ -274,13 +287,55 @@ export default function Dashboard() {
               <CardContent className="space-y-3">
                 {criticalBugs.map((bug) => (
                   <div key={bug.id} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                    <div className="font-medium text-red-300 text-sm">{bug.title}</div>
-                    <div className="text-xs text-red-400 mt-1 capitalize">{bug.platform}</div>
+                    <div className="font-medium text-red-300 text-sm">
+                      {bug.subject || bug.title || 'Bug'}
+                    </div>
+                    <div className="text-xs text-red-400 mt-1">
+                      {bug.device || bug.platform || 'Unknown platform'}
+                    </div>
+                    {bug.dueDate && (
+                      <div className="text-xs text-red-400 mt-1">
+                        Due: {new Date(bug.dueDate).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
                 ))}
                 <Link to={createPageUrl("Bugs")}>
                   <Button variant="outline" size="sm" className="w-full border-red-500/30 text-red-300 hover:bg-red-500/20 hover:text-red-200">
                     View All Bugs
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Upcoming Due Dates */}
+          {upcomingDueDates.length > 0 && (
+            <Card className="bg-gray-800/50 border-gray-700/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-400" />
+                  Upcoming Due Dates
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {upcomingDueDates.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                    <div>
+                      <div className="font-medium text-sm text-white">{item.title}</div>
+                      <div className="text-xs text-gray-400">{item.type === 'Bug' ? 'Bug' : 'Feature'} due on {new Date(item.dueDate).toLocaleDateString()}</div>
+                    </div>
+                    <Badge 
+                      variant="secondary" 
+                      className="text-xs capitalize bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
+                    >
+                      {item.type}
+                    </Badge>
+                  </div>
+                ))}
+                <Link to={createPageUrl("Bugs")}>
+                  <Button variant="outline" size="sm" className="w-full border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 hover:text-yellow-200">
+                    View All Due Dates
                   </Button>
                 </Link>
               </CardContent>

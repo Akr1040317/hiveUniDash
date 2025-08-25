@@ -27,6 +27,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 const columns = {
   backlog: { name: 'Backlog', color: 'bg-gray-500' },
@@ -309,13 +317,28 @@ const CreateFeatureDialog = ({ onFeatureCreated }) => {
 
           <div>
             <Label htmlFor="dueDate" className="text-gray-300">Due Date</Label>
-            <Input
-              id="dueDate"
-              type="date"
-              value={formData.dueDate}
-              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              className="bg-gray-700 border-gray-600 text-white"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={`w-full justify-start text-left font-normal bg-gray-700 border-gray-600 text-white hover:bg-gray-600 ${
+                    !formData.dueDate && "text-gray-400"
+                  }`}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.dueDate ? format(new Date(formData.dueDate), "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-700">
+                <CalendarComponent
+                  mode="single"
+                  selected={formData.dueDate ? new Date(formData.dueDate) : undefined}
+                  onSelect={(date) => setFormData({ ...formData, dueDate: date ? format(date, 'yyyy-MM-dd') : '' })}
+                  initialFocus
+                  className="bg-gray-800 text-white"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="flex justify-end gap-2">
