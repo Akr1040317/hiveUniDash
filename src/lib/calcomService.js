@@ -7,14 +7,8 @@ class CalComService {
     this.username = CALCOM_CONFIG.USERNAME;
     this.baseUrl = CALCOM_CONFIG.BASE_URL;
     
-    // CORS proxy options - we'll try multiple approaches
-    this.corsProxies = [
-      'https://cors-anywhere.herokuapp.com/',
-      'https://api.allorigins.win/raw?url=',
-      'https://corsproxy.io/?',
-      'https://thingproxy.freeboard.io/fetch/'
-    ];
-    this.currentProxyIndex = 0;
+    // Use our local Vercel API route to avoid CORS issues
+    this.localApiUrl = '/api/calcom';
   }
 
   // Check if Cal.com is properly configured
@@ -22,47 +16,7 @@ class CalComService {
     return isCalComConfigured();
   }
 
-  // Get headers for API requests
-  getHeaders() {
-    return {
-      'Authorization': `Bearer ${this.apiKey}`,
-      'Content-Type': 'application/json',
-    };
-  }
-
-  // Try to fetch with different CORS proxies
-  async fetchWithProxy(url, options = {}) {
-    let lastError;
-    
-    for (let i = 0; i < this.corsProxies.length; i++) {
-      try {
-        const proxyUrl = this.corsProxies[i] + url;
-        console.log(`Trying proxy ${i + 1}: ${proxyUrl}`);
-        
-        const response = await fetch(proxyUrl, {
-          ...options,
-          headers: {
-            ...options.headers,
-            'Origin': 'https://dashboardhiveeducation.vercel.app'
-          }
-        });
-        
-        if (response.ok) {
-          console.log(`Proxy ${i + 1} successful`);
-          this.currentProxyIndex = i; // Remember which proxy worked
-          return response;
-        }
-      } catch (error) {
-        console.log(`Proxy ${i + 1} failed:`, error.message);
-        lastError = error;
-        continue;
-      }
-    }
-    
-    throw new Error(`All CORS proxies failed. Last error: ${lastError?.message}`);
-  }
-
-  // Fetch all your bookings
+  // Fetch all your bookings using our local API route
   async getBookings(params = {}) {
     if (!this.isConfigured()) {
       console.warn('Cal.com is not configured. Please update your API key and username in src/config/calcom.js');
@@ -75,15 +29,20 @@ class CalComService {
         ...params
       });
 
-      const apiUrl = `${this.baseUrl}/bookings?${queryParams}`;
-      console.log('Fetching Cal.com bookings from:', apiUrl);
+      const apiUrl = `${this.localApiUrl}?${queryParams}`;
+      console.log('Fetching Cal.com bookings via local API:', apiUrl);
 
-      const response = await this.fetchWithProxy(apiUrl, {
+      const response = await fetch(apiUrl, {
         method: 'GET',
-        headers: this.getHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Local API error:', response.status, errorData);
+        
         if (response.status === 401) {
           throw new Error('Cal.com API key is invalid or expired');
         } else if (response.status === 403) {
@@ -91,7 +50,7 @@ class CalComService {
         } else if (response.status === 404) {
           throw new Error('Cal.com username not found');
         } else {
-          throw new Error(`Cal.com API error: ${response.status} - ${response.statusText}`);
+          throw new Error(`API error: ${response.status} - ${errorData.error || response.statusText}`);
         }
       }
 
@@ -101,17 +60,13 @@ class CalComService {
     } catch (error) {
       console.error('Error fetching Cal.com bookings:', error);
       
-      // If all proxies fail, return mock data for testing
-      if (error.message.includes('All CORS proxies failed')) {
-        console.warn('Returning mock Cal.com data due to CORS issues');
-        return this.getMockBookings();
-      }
-      
-      return [];
+      // If API fails, return mock data for testing
+      console.warn('Returning mock Cal.com data due to API issues');
+      return this.getMockBookings();
     }
   }
 
-  // Mock bookings for testing when CORS fails
+  // Mock bookings for testing when API fails
   getMockBookings() {
     const today = new Date();
     const tomorrow = new Date(today);
@@ -167,21 +122,24 @@ class CalComService {
     ];
   }
 
-  // Fetch your event types
+  // Fetch your event types using our local API route
   async getEventTypes() {
     if (!this.isConfigured()) {
       return [];
     }
 
     try {
-      const apiUrl = `${this.baseUrl}/event-types?username=${this.username}`;
-      const response = await this.fetchWithProxy(apiUrl, {
+      const apiUrl = `${this.localApiUrl}?username=${this.username}&type=event-types`;
+      const response = await fetch(apiUrl, {
         method: 'GET',
-        headers: this.getHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
-        throw new Error(`Cal.com API error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`API error: ${response.status} - ${errorData.error || response.statusText}`);
       }
 
       const data = await response.json();
@@ -279,16 +237,19 @@ class CalComService {
     }
 
     try {
-      const apiUrl = `${this.baseUrl}/event-types?username=${this.username}`;
-      const response = await this.fetchWithProxy(apiUrl, {
+      const apiUrl = `${this.localApiUrl}?username=${this.username}&type=event-types`;
+      const response = await fetch(apiUrl, {
         method: 'GET',
-        headers: this.getHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       if (response.ok) {
         return { success: true, message: 'Cal.com connection successful' };
       } else {
-        return { success: false, error: `API error: ${response.status}` };
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: `API error: ${response.status} - ${errorData.error || response.statusText}` };
       }
     } catch (error) {
       return { success: false, error: error.message };
