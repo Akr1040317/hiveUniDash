@@ -3,8 +3,14 @@ import { Bug } from "@/api/entities";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus } from 'lucide-react';
+import { Plus, Flag, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const columns = {
   new: { name: 'New', color: 'bg-blue-500' },
@@ -13,14 +19,36 @@ const columns = {
   resolved: { name: 'Resolved', color: 'bg-green-500' },
 };
 
-const priorities = {
-  'Critical - System down': 'border-red-500',
-  'High - Major functionality broken': 'border-orange-500',
-  'Medium - Affects functionality': 'border-yellow-500',
-  'Low - Minor issue': 'border-blue-500'
+const severityLevels = {
+  'Critical - System down': { 
+    label: 'Critical', 
+    color: 'bg-red-500', 
+    textColor: 'text-red-100',
+    borderColor: 'border-red-500'
+  },
+  'High - Major functionality broken': { 
+    label: 'High', 
+    color: 'bg-orange-500', 
+    textColor: 'text-orange-100',
+    borderColor: 'border-orange-500'
+  },
+  'Medium - Affects functionality': { 
+    label: 'Medium', 
+    color: 'bg-yellow-500', 
+    textColor: 'text-yellow-100',
+    borderColor: 'border-yellow-500'
+  },
+  'Low - Minor issue': { 
+    label: 'Low', 
+    color: 'bg-blue-500', 
+    textColor: 'text-blue-100',
+    borderColor: 'border-blue-500'
+  }
 };
 
-const BugCard = ({ bug, index, currentRegion }) => {
+const BugCard = ({ bug, index, currentRegion, onUpdateBug }) => {
+  const [isEditing, setIsEditing] = useState(false);
+
   // Handle different data structures for US vs Dubai
   const getBugTitle = () => {
     if (currentRegion === 'dubai') {
@@ -57,7 +85,17 @@ const BugCard = ({ bug, index, currentRegion }) => {
     return bug.description || 'No description provided';
   };
 
-  const priorityClass = priorities[getBugPriority()] || 'border-gray-500';
+  const handleSeverityChange = async (newSeverity) => {
+    try {
+      await onUpdateBug(bug.id, { severity: newSeverity });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating bug severity:', error);
+    }
+  };
+
+  const priorityClass = severityLevels[getBugPriority()]?.borderColor || 'border-gray-500';
+  const severityInfo = severityLevels[getBugPriority()];
 
   return (
     <Draggable draggableId={bug.id} index={index}>
@@ -68,12 +106,56 @@ const BugCard = ({ bug, index, currentRegion }) => {
           {...provided.dragHandleProps}
           className={`p-4 mb-3 bg-gray-800 rounded-lg border-l-4 ${priorityClass} ${snapshot.isDragging ? 'shadow-2xl scale-105' : 'shadow-md'} transition-all`}
         >
-          <p className="font-semibold text-white mb-2">{getBugTitle()}</p>
+          <div className="flex justify-between items-start mb-2">
+            <p className="font-semibold text-white flex-1 mr-2">{getBugTitle()}</p>
+            <div className="flex items-center gap-2">
+              {/* Severity Flag */}
+              <Badge 
+                className={`${severityInfo?.color} ${severityInfo?.textColor} text-xs font-medium px-2 py-1`}
+              >
+                <Flag className="w-3 h-3 mr-1" />
+                {severityInfo?.label}
+              </Badge>
+              
+              {/* Edit Severity Button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-gray-800 border-gray-700">
+                  {Object.entries(severityLevels).map(([level, info]) => (
+                    <DropdownMenuItem 
+                      key={level}
+                      onClick={() => handleSeverityChange(level)}
+                      className="focus:bg-gray-700 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${info.color}`}></div>
+                        <span className="text-white">{info.label}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          
           <p className="text-xs text-gray-400 mb-2 line-clamp-2">{getBugDescription()}</p>
+          
           <div className="flex justify-between items-center text-xs text-gray-400">
-            <Badge variant="secondary" className="capitalize text-xs bg-gray-700 text-gray-300">{getBugPlatform()}</Badge>
+            <Badge variant="secondary" className="capitalize text-xs bg-gray-700 text-gray-300">
+              {getBugPlatform()}
+            </Badge>
             <span>{getBugReporter()}</span>
           </div>
+          
           {currentRegion === 'dubai' && bug.timestamp && (
             <div className="text-xs text-gray-500 mt-2">
               {new Date(bug.timestamp.toDate ? bug.timestamp.toDate() : bug.timestamp).toLocaleDateString()}
@@ -88,6 +170,7 @@ const BugCard = ({ bug, index, currentRegion }) => {
 export default function BugsPage() {
   const [bugs, setBugs] = useState([]);
   const [currentRegion] = useState(localStorage.getItem('hive_region') || 'us');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     loadBugs();
@@ -117,12 +200,34 @@ export default function BugsPage() {
     setBugs(updatedBugs);
     
     try {
-      // Persist change
+      setIsUpdating(true);
+      // Persist change to Firebase
       await Bug.update(bugId, { status: newStatus });
     } catch (error) {
       console.error('Error updating bug status:', error);
       // Revert optimistic update on error
       setBugs(bugs);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleUpdateBug = async (bugId, updateData) => {
+    try {
+      setIsUpdating(true);
+      await Bug.update(bugId, updateData);
+      
+      // Update local state
+      setBugs(prevBugs => 
+        prevBugs.map(bug => 
+          bug.id === bugId ? { ...bug, ...updateData } : bug
+        )
+      );
+    } catch (error) {
+      console.error('Error updating bug:', error);
+      throw error;
+    } finally {
+      setIsUpdating(false);
     }
   };
   
@@ -146,6 +251,12 @@ export default function BugsPage() {
         </Button>
       </div>
 
+      {isUpdating && (
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+          <p className="text-blue-400 text-sm">Updating bug status...</p>
+        </div>
+      )}
+
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {Object.entries(columns).map(([status, column]) => (
@@ -165,7 +276,13 @@ export default function BugsPage() {
                     className="p-4 min-h-[300px]"
                   >
                     {getBugsByStatus(status).map((bug, index) => (
-                      <BugCard key={bug.id} bug={bug} index={index} currentRegion={currentRegion} />
+                      <BugCard 
+                        key={bug.id} 
+                        bug={bug} 
+                        index={index} 
+                        currentRegion={currentRegion}
+                        onUpdateBug={handleUpdateBug}
+                      />
                     ))}
                     {provided.placeholder}
                   </div>
