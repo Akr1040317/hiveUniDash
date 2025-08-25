@@ -54,7 +54,7 @@ export default function Dashboard() {
         critical: allBugs.filter(b => b.severity === 'Critical - System down').length
       };
 
-      // Load feature stats
+      // Load feature stats from planning collection
       const allFeatures = await Feature.filter({ region: [currentRegion, 'both'] });
       const featureStats = {
         total: allFeatures.length,
@@ -72,7 +72,7 @@ export default function Dashboard() {
         status: ['new', 'open', 'in_progress']
       }, '-timestamp', 3);
 
-      // Load upcoming due dates (bugs and features)
+      // Load upcoming due dates from planning collection (features) and bugs
       const now = new Date();
       const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
       
@@ -396,6 +396,70 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           )}
+
+          {/* Upcoming Webinars */}
+          <Card className="bg-gray-800/50 border-gray-700/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-400" />
+                Upcoming Webinars
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                <div className="font-medium text-sm text-white mb-1">Spelling Bee Prep Session</div>
+                <div className="text-xs text-gray-400 mb-2">Advanced vocabulary building techniques</div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-blue-400">Dec 15, 2024</span>
+                  <Badge variant="secondary" className="text-xs bg-blue-500/20 text-blue-300 border-blue-500/30">
+                    Virtual
+                  </Badge>
+                </div>
+              </div>
+              <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                <div className="font-medium text-sm text-white mb-1">Parent Workshop</div>
+                <div className="text-xs text-gray-400 mb-2">How to support your child's spelling journey</div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-blue-400">Dec 20, 2024</span>
+                  <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-300 border-green-500/30">
+                    In-Person
+                  </Badge>
+                </div>
+              </div>
+              <Link to={createPageUrl("Calendar")}>
+                <Button variant="outline" size="sm" className="w-full border-blue-500/30 text-blue-300 hover:bg-blue-500/20 hover:text-blue-200">
+                  View All Webinars
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Quick Notes */}
+          <Card className="bg-gray-800/50 border-gray-700/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-400" />
+                Quick Notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                <div className="text-xs text-gray-400 mb-2">Dec 10, 2024</div>
+                <div className="text-sm text-white">Remember to update the spelling word database with new regional variations</div>
+              </div>
+              <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                <div className="text-xs text-gray-400 mb-2">Dec 8, 2024</div>
+                <div className="text-sm text-white">Contact local schools about the upcoming spelling competition</div>
+              </div>
+              <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                <div className="text-xs text-gray-400 mb-2">Dec 5, 2024</div>
+                <div className="text-sm text-white">Review and approve new content submissions for Q1</div>
+              </div>
+              <Button variant="outline" size="sm" className="w-full border-green-500/30 text-green-300 hover:bg-green-500/20 hover:text-green-200">
+                Add Note
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* Recent Content */}
           <Card className="bg-gray-800/50 border-gray-700/50">

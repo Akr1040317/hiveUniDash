@@ -9,7 +9,8 @@ import {
   query, 
   where, 
   orderBy,
-  limit 
+  limit,
+  serverTimestamp
 } from 'firebase/firestore';
 import { getFirebaseInstances } from './firebase';
 
@@ -208,27 +209,70 @@ export const deleteBug = async (region, bugId) => {
   throw new Error('Bug collection not yet implemented for US region');
 };
 
-// Feature-specific functions
-export const getFeatures = async (region, filters = {}) => {
-  // For now, return empty array since features collection doesn't exist
-  // This can be updated when you create the features collection
-  return [];
+// Feature functions
+export const getFeatures = async (region = 'us') => {
+  try {
+    const { db } = getFirebaseInstances(region);
+    const featuresRef = collection(db, 'planning');
+    const q = query(featuresRef, where('type', '==', 'feature'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      type: 'Feature' // Ensure type is set for dashboard display
+    }));
+  } catch (error) {
+    console.error('Error getting features:', error);
+    return [];
+  }
 };
 
 export const getFeatureById = async (region, featureId) => {
   return null;
 };
 
-export const createFeature = async (region, featureData) => {
-  throw new Error('Features collection not yet implemented');
+export const createFeature = async (featureData, region = 'us') => {
+  try {
+    const { db } = getFirebaseInstances(region);
+    const featuresRef = collection(db, 'planning');
+    const docRef = await addDoc(featuresRef, {
+      ...featureData,
+      type: 'feature',
+      createdAt: serverTimestamp(),
+      region: region
+    });
+    return { id: docRef.id, ...featureData };
+  } catch (error) {
+    console.error('Error creating feature:', error);
+    throw error;
+  }
 };
 
-export const updateFeature = async (region, featureId, featureData) => {
-  throw new Error('Features collection not yet implemented');
+export const updateFeature = async (featureId, updateData, region = 'us') => {
+  try {
+    const { db } = getFirebaseInstances(region);
+    const featureRef = doc(db, 'planning', featureId);
+    await updateDoc(featureRef, {
+      ...updateData,
+      updatedAt: serverTimestamp()
+    });
+    return { id: featureId, ...updateData };
+  } catch (error) {
+    console.error('Error updating feature:', error);
+    throw error;
+  }
 };
 
-export const deleteFeature = async (region, featureId) => {
-  throw new Error('Features collection not yet implemented');
+export const deleteFeature = async (featureId, region = 'us') => {
+  try {
+    const { db } = getFirebaseInstances(region);
+    const featureRef = doc(db, 'planning', featureId);
+    await deleteDoc(featureRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting feature:', error);
+    throw error;
+  }
 };
 
 // Analytics-specific functions
