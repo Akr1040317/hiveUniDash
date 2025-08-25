@@ -404,6 +404,48 @@ export default function Dashboard() {
 
         {/* Right Column - Webinars, Notes & Content */}
         <div className="space-y-6">
+          {/* Upcoming Webinars */}
+          <Card className="bg-gray-800/50 border-gray-700/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-400" />
+                Upcoming Webinars
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-center py-6 text-gray-500">
+                <Users className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                <p className="text-sm">No upcoming webinars</p>
+                <p className="text-xs text-gray-600 mt-1">Add webinars to see them here</p>
+              </div>
+              <Link to={createPageUrl("Calendar")}>
+                <Button variant="outline" size="sm" className="w-full border-blue-500/30 text-blue-300 hover:bg-blue-500/20 hover:text-blue-200">
+                  View All Webinars
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Quick Notes */}
+          <Card className="bg-gray-800/50 border-gray-700/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-400" />
+                Quick Notes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-center py-6 text-gray-500">
+                <FileText className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                <p className="text-sm">No quick notes</p>
+                <p className="text-xs text-gray-600 mt-1">Add notes to see them here</p>
+              </div>
+              <Button variant="outline" size="sm" className="w-full border-green-500/30 text-green-300 hover:bg-green-500/20 hover:text-green-200">
+                Add Note
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Recent Content */}
           <Card className="bg-gray-800/50 border-gray-700/50">
             <CardHeader className="pb-3">
